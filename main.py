@@ -81,8 +81,8 @@ def verificar_webhook(
 
 # --- 2. RECEPCIÓN DE MENSAJES (POST) ---
 @app.post("/webhook")
-async def recibir_mensaje(request: Request, background_tasks: BackgroundTasks):
-    """Recibe los mensajes de Messenger y responde de inmediato a Meta mientras procesa con IA en segundo plano."""
+async def recibir_mensaje(request: Request):
+    """Recibe los mensajes de Messenger y procesa con IA de inmediato."""
     try:
         data = await request.json()
     except Exception:
@@ -100,7 +100,10 @@ async def recibir_mensaje(request: Request, background_tasks: BackgroundTasks):
                     
                 texto_usuario = message.get("text")
                 if sender_id and texto_usuario:
-                    background_tasks.add_task(atender_cliente, sender_id, texto_usuario)
+                    try:
+                        atender_cliente(sender_id, texto_usuario)
+                    except Exception as e:
+                        print(f"Error atendiendo a {sender_id}: {e}")
                     
         return Response(content="EVENT_RECEIVED", status_code=200)
 

@@ -28,9 +28,9 @@ CAPACIDAD DE RAZONAMIENTO Y CRITERIO HUMANO:
 
 # Modelos en orden de preferencia y alta disponibilidad
 MODELOS_PREFERIDOS = [
+    "gemini-flash-latest",
     "gemini-flash-lite-latest",
     "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
     "gemini-3.5-flash",
     "gemini-3.7-flash"
 ]
