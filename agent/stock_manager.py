@@ -70,7 +70,7 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     resto = partes[1].strip() if len(partes) > 1 else ""
     
     # Comprobar que sea exactamente uno de los comandos válidos (sin alias)
-    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario", "/bloqueados", "/desbloquear"]
+    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario", "/bloqueados", "/desbloquear", "/apartados", "/liquidar"]
     if comando not in comandos_validos:
         return False, ""
     
@@ -90,7 +90,8 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
             "Para autenticarte, incluye tu PIN de administrador en el comando. Ejemplos:\n"
             "• `/actualizar PIN_SECRETO tus existencias...`\n"
             "• `/verinventario PIN_SECRETO`\n"
-            "• `/limpiarinventario PIN_SECRETO`"
+            "• `/limpiarinventario PIN_SECRETO`\n"
+            "• `/apartados PIN_SECRETO`"
         )
         
     # 2. Ejecutar comandos estrictos (sin alias)
@@ -136,5 +137,43 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
         if res:
             return True, f"✅ El usuario `{resto}` ha sido desbloqueado con éxito."
         return True, f"ℹ️ El usuario `{resto}` no estaba en la lista de bloqueados."
+        
+    elif comando == "/apartados":
+        from agent.apartados_manager import obtener_todos_apartados
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("America/Mexico_City")
+        ahora = datetime.now(tz)
+        
+        apartados = obtener_todos_apartados()
+        if not apartados:
+            return True, "📦 No hay apartados registrados en la memoria del bot actualmente."
+            
+        lineas = []
+        for a in apartados:
+            fecha_creacion_str = a.get("fecha_creacion", "")
+            dias_trans = "?"
+            try:
+                dt_c = datetime.strptime(fecha_creacion_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=tz)
+                dias_trans = str((ahora - dt_c).days)
+            except Exception:
+                pass
+                
+            estado_icon = "🟢" if a.get("estado") == "pendiente" else "✅"
+            notif = " (🔔 Recordatorio enviado)" if a.get("recordatorio_enviado") else ""
+            lineas.append(
+                f"{estado_icon} **{a.get('id')}**: {a.get('nombre_cliente')} - {a.get('articulo_y_talla')} | Tel: {a.get('telefono')} | {dias_trans}/15 días [{a.get('estado').upper()}]{notif}"
+            )
+            
+        return True, "📋 **Control de Apartados en Memoria (15 días de plazo):**\n\n" + "\n".join(lineas) + "\n\n*(Para marcar como pagado/entregado: `/liquidar ID_APARTADO`)*"
+        
+    elif comando == "/liquidar":
+        if not resto:
+            return True, "ℹ️ Escribe `/liquidar <ID_APARTADO>` (ejemplo: `/liquidar APT-1`) para marcarlo como entregado."
+        from agent.apartados_manager import marcar_apartado_liquidado
+        res = marcar_apartado_liquidado(resto)
+        if res:
+            return True, f"✅ El apartado `{resto}` ha sido marcado como **LIQUIDADO / ENTREGADO**."
+        return True, f"⚠️ No se encontró el apartado `{resto}` en la memoria."
         
     return False, ""

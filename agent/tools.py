@@ -19,9 +19,11 @@ def consultar_informacion_tienda(tema: str) -> dict:
     resultado = datos.get(tema.lower(), "Ofrecemos uniformes escolares (CECyTE, primaria, secundaria), mochilas Golden Star y ropa para toda la familia.")
     return {"informacion": resultado}
 
+from agent.apartados_manager import crear_apartado_memoria
+
 def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_talla: str) -> dict:
     """
-    Registra un apartado de ropa, uniforme o mochila en Google Sheets para que el personal de la tienda lo separe.
+    Registra un apartado de ropa, uniforme o mochila en la memoria del bot y en Google Sheets para control y recordatorio a los 15 días.
     
     Args:
         nombre_cliente: Nombre del cliente que aparta.
@@ -29,6 +31,10 @@ def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_tal
         articulo_y_talla: Descripción exacta de lo que desea apartar (ej: 'Playera CECyTE Talla M' o 'Mochila Golden Star azul').
     """
     try:
+        # 1. Guardar en la memoria persistente del chatbot para el recordatorio de 15 días
+        crear_apartado_memoria(nombre_cliente, telefono, articulo_y_talla)
+        
+        # 2. Guardar en Google Sheets para visualización del dueño
         guardar_fila_sheets(
             pestana="Apartados_y_Pedidos",
             datos=[
@@ -36,12 +42,12 @@ def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_tal
                 nombre_cliente,
                 telefono,
                 articulo_y_talla,
-                "Pendiente de Entrega / Pago"
+                "Pendiente de Entrega / Pago (15 días de plazo)"
             ]
         )
         return {
             "status": "success",
-            "mensaje": f"Apartado registrado con éxito para {nombre_cliente}: {articulo_y_talla}."
+            "mensaje": f"Apartado registrado con éxito para {nombre_cliente}: {articulo_y_talla} con plazo de 15 días."
         }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}

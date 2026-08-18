@@ -97,6 +97,16 @@ Los administradores de la página pueden consultar y actualizar el inventario y 
   ```
   *(O con PIN si es la primera vez: `/verinventario RosymarAdmin2026`)*
 
+* **Ver apartados activos y días transcurridos:**
+  ```text
+  /apartados
+  ```
+
+* **Marcar apartado como liquidado/entregado:**
+  ```text
+  /liquidar ID_APARTADO
+  ```
+
 * **Ver usuarios bloqueados por groserías:**
   ```text
   /bloqueados
@@ -106,6 +116,14 @@ Los administradores de la página pueden consultar y actualizar el inventario y 
   ```text
   /desbloquear ID_USUARIO
   ```
+
+---
+
+## 📦 Sistema de Apartados y Recordatorio Automático de 15 Días
+
+* **Registro en Memoria y Sheets:** Cuando un cliente solicita un apartado, el bot guarda el registro en su memoria persistente y en Google Sheets.
+* **Política de 15 Días:** El sistema lleva el conteo exacto de días transcurridos desde que se apartó la prenda o producto con anticipo de $50 o $100 pesos.
+* **Envío Automático de Recordatorio:** Al cumplirse los **15 días de plazo**, el bot le envía un mensaje personalizado y cordial al cliente en Facebook Messenger invitándolo a pasar a la tienda física a liquidar y recoger su artículo.
 
 ---
 
@@ -126,11 +144,12 @@ chatbot/
 ├── .env.example             # Plantilla de variables de entorno (con PIN de admin)
 ├── requirements.txt         # Dependencias de Python (FastAPI, Gemini, etc.)
 ├── vercel.json              # Configuración de Serverless Rewrite para Vercel
-├── main.py                  # API FastAPI, Webhook, Moderación y Horarios
+├── main.py                  # API FastAPI, Webhook, Recordatorios y Horarios
 ├── api/
 │   └── index.py             # Entrada serverless para Vercel
 └── agent/
     ├── gemini_agent.py      # Lógica de IA con Gemini y respuestas ultra concretas
+    ├── apartados_manager.py # Memoria persistente de apartados y recordatorios de 15 días
     ├── moderation.py        # Filtro de groserías mexicanas y sistema de bloqueo
     ├── schedule_manager.py  # Control de horario (6 AM - 7:59 PM) y cola nocturna
     ├── stock_manager.py     # Manejo seguro de existencias y comandos administrativos

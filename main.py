@@ -68,6 +68,11 @@ from agent.schedule_manager import (
     obtener_y_limpiar_pendientes
 )
 
+from agent.apartados_manager import (
+    procesar_y_enviar_recordatorios,
+    obtener_todos_apartados
+)
+
 def atender_cliente(sender_id: str, texto_usuario: str):
     """Procesa el mensaje (comandos administrativos, moderación o atención con IA)."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
@@ -77,7 +82,7 @@ def atender_cliente(sender_id: str, texto_usuario: str):
         print(f"⛔ [MENSAJE IGNORADO]: El usuario {sender_id} está bloqueado por comportamiento grosero.")
         return
 
-    # 2. Verificar si es un comando administrativo (/actualizar, /verinventario, /limpiarinventario, /bloqueados, /desbloquear)
+    # 2. Verificar si es un comando administrativo (/actualizar, /verinventario, /limpiarinventario, /bloqueados, /desbloquear, /apartados, /liquidar)
     es_comando, respuesta_admin = procesar_comando_admin(sender_id, texto_usuario)
     if es_comando:
         print(f"[COMANDO ADMIN]: {respuesta_admin}")
@@ -118,21 +123,37 @@ def atender_cliente(sender_id: str, texto_usuario: str):
             except Exception as e:
                 print(f"Error respondiendo pendiente a {p_id}: {e}")
 
-    # 6. Flujo normal de atención diurna: marcar como leído y activar "Escribiendo..."
+    # 6. Verificar y enviar recordatorios a clientes cuyos apartados hayan cumplido 15 días
+    try:
+        procesar_y_enviar_recordatorios(enviar_mensaje_messenger)
+    except Exception as e:
+        print(f"Aviso revisando recordatorios de apartados: {e}")
+
+    # 7. Flujo normal de atención diurna: marcar como leído y activar "Escribiendo..."
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
     
-    # 7. Pausa humana natural
+    # 8. Pausa humana natural
     time.sleep(2)
     
-    # 8. Procesar respuesta ultra corta y concreta con Gemini
+    # 9. Procesar respuesta ultra corta y concreta con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
     
-    # 9. Enviar respuesta final
+    # 10. Enviar respuesta final
     enviar_accion_messenger(sender_id, "typing_on")
     time.sleep(1)
     enviar_mensaje_messenger(sender_id, respuesta_ia)
+
+@app.get("/recordatorios")
+def ejecutar_recordatorios():
+    """Endpoint para revisar y enviar recordatorios de apartados de 15 días."""
+    enviados = procesar_y_enviar_recordatorios(enviar_mensaje_messenger)
+    return {
+        "status": "ok",
+        "recordatorios_enviados": enviados,
+        "total_apartados": len(obtener_todos_apartados())
+    }
 
 # --- 1. VERIFICACIÓN DEL WEBHOOK CON META (GET) ---
 @app.get("/webhook")

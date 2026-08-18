@@ -91,8 +91,11 @@ def extraer_texto(respuesta) -> str:
         
     return "¡Hola! Con gusto te atiendo en Novedades Rosymar. ¿En qué prenda, mochila o uniforme te puedo ayudar hoy?"
 
+from agent.apartados_manager import CURRENT_SENDER_ID
+
 def procesar_mensaje_con_ia(numero_telefono: str, mensaje_usuario: str) -> str:
     """Envía el mensaje al agente de Gemini con reintento automático entre modelos de respaldo."""
+    CURRENT_SENDER_ID.set(str(numero_telefono))
     contexto = f"[Cliente Messenger ({numero_telefono})]: {mensaje_usuario}"
     
     for idx, nombre_modelo in enumerate(MODELOS_PREFERIDOS):
