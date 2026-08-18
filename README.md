@@ -83,23 +83,25 @@ Una vez que tengas tu URL pública de Vercel, Render o del túnel local:
 
 ## 👑 Comandos de Administrador (Actualización de Existencias en Vivo)
 
-Los administradores de la página pueden actualizar el inventario y existencias en tiempo real escribiendo directamente en el chat de Messenger:
+Los administradores de la página pueden consultar y actualizar el inventario y existencias en tiempo real escribiendo directamente en el chat de Messenger:
 
 * **Actualizar existencias:**
   ```text
-  .actualizar RosymarAdmin2026 Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos talla Grande.
+  /actualizar RosymarAdmin2026 Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos talla Grande.
   ```
-  *(Una vez que envías el PIN la primera vez, tu usuario queda registrado como administrador y en los siguientes mensajes solo necesitas escribir `.actualizar <tus existencias>` sin volver a poner el PIN).*
+  *(Una vez que envías el PIN la primera vez, tu usuario queda registrado como administrador y en los siguientes mensajes solo necesitas escribir `/actualizar <tus existencias>` sin volver a poner el PIN).*
 
 * **Ver inventario actual registrado:**
   ```text
-  .verinventario
+  /verinventario
   ```
+  *(O con PIN si es la primera vez: `/verinventario RosymarAdmin2026`)*
 
 * **Restablecer inventario:**
   ```text
-  .limpiarinventario
+  /limpiarinventario
   ```
+  *(O con PIN si es la primera vez: `/limpiarinventario RosymarAdmin2026`)*
 
 ---
 

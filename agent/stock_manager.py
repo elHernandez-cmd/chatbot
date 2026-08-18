@@ -57,16 +57,22 @@ def registrar_administrador(sender_id: str):
 
 def procesar_comando_admin(sender_id: str, mensaje: str):
     """
-    Procesa comandos que inicien con punto (.) como .actualizar, .verinventario, etc.
+    Procesa comandos de administración que inicien con diagonal (/):
+    /actualizar, /verinventario, /limpiarinventario.
     Retorna (es_comando: bool, respuesta: str)
     """
     msg = mensaje.strip()
-    if not msg.startswith("."):
+    if not msg.startswith("/"):
         return False, ""
         
     partes = msg.split(maxsplit=1)
     comando = partes[0].lower()
     resto = partes[1].strip() if len(partes) > 1 else ""
+    
+    # Comprobar que sea exactamente uno de los comandos válidos (sin alias)
+    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario"]
+    if comando not in comandos_validos:
+        return False, ""
     
     # 1. Autorización de administrador
     autorizado = es_administrador(sender_id)
@@ -75,21 +81,24 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     if ADMIN_PIN and ADMIN_PIN.lower() in msg.lower():
         autorizado = True
         registrar_administrador(sender_id)
-        # Limpiar el PIN del texto a guardar
+        # Limpiar el PIN del texto restante
         resto = resto.replace(ADMIN_PIN, "").replace(ADMIN_PIN.lower(), "").strip()
         
     if not autorizado:
         return True, (
             "⛔ **Acceso Restringido**: Este comando es exclusivo para administradores de **Novedades Rosymar**.\n"
-            "Si eres administrador, escribe: `.actualizar PIN_SECRETO tus existencias...`"
+            "Para autenticarte, incluye tu PIN de administrador en el comando. Ejemplos:\n"
+            "• `/actualizar PIN_SECRETO tus existencias...`\n"
+            "• `/verinventario PIN_SECRETO`\n"
+            "• `/limpiarinventario PIN_SECRETO`"
         )
         
-    # 2. Ejecutar comandos
-    if comando in [".actualizar", ".stock", ".inventario"]:
+    # 2. Ejecutar comandos estrictos (sin alias)
+    if comando == "/actualizar":
         if not resto:
             return True, (
-                "ℹ️ **Uso del comando**: Escribe `.actualizar` seguido de los productos que hay o se agotaron.\n"
-                "👉 Ejemplo: `.actualizar Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos.`"
+                "ℹ️ **Uso del comando**: Escribe `/actualizar` seguido de las existencias o productos.\n"
+                "👉 Ejemplo: `/actualizar Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos.`"
             )
             
         guardar_existencias(resto, admin_id=sender_id)
@@ -99,15 +108,15 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
             "🤖 A partir de este momento, el chatbot informará estas existencias a los clientes con exactitud."
         )
         
-    elif comando in [".verinventario", ".verexistencias", ".verstock"]:
+    elif comando == "/verinventario":
         existencias = obtener_existencias_actuales()
         return True, (
             "📋 **Inventario y Existencias Actuales en el Chatbot:**\n\n"
             f"{existencias}\n\n"
-            "*(Para actualizar, envía: `.actualizar <nuevos datos>`)*"
+            "*(Para actualizar existencias, envía: `/actualizar <nuevos datos>`)*"
         )
         
-    elif comando in [".limpiarinventario", ".resetstock"]:
+    elif comando == "/limpiarinventario":
         guardar_existencias(EXISTENCIAS_DEFAULT, admin_id=sender_id)
         return True, "🔄 **Inventario restablecido** a los valores predeterminados de la tienda."
         

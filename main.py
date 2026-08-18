@@ -62,7 +62,7 @@ def atender_cliente(sender_id: str, texto_usuario: str):
     """Procesa el mensaje (comandos administrativos o atención con IA a clientes)."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
     
-    # 1. Verificar si es un comando administrativo (.actualizar, .verinventario, etc.)
+    # 1. Verificar si es un comando administrativo (/actualizar, /verinventario, /limpiarinventario)
     es_comando, respuesta_admin = procesar_comando_admin(sender_id, texto_usuario)
     if es_comando:
         print(f"[COMANDO ADMIN]: {respuesta_admin}")
