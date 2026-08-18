@@ -144,16 +144,11 @@ chatbot/
 ├── .env.example             # Plantilla de variables de entorno (con PIN de admin)
 ├── requirements.txt         # Dependencias de Python (FastAPI, Gemini, etc.)
 ├── vercel.json              # Configuración de Serverless Rewrite para Vercel
-├── main.py                  # API FastAPI, Webhook, Recordatorios y Horarios
+├── main.py                  # API FastAPI, Webhook, Moderación, Horarios y Recordatorios
+├── README.md                # Documentación oficial del proyecto
 ├── api/
 │   └── index.py             # Entrada serverless para Vercel
 └── agent/
-    ├── gemini_agent.py      # Lógica de IA con Gemini y respuestas ultra concretas
-    ├── apartados_manager.py # Memoria persistente de apartados y recordatorios de 15 días
-    ├── moderation.py        # Filtro de groserías mexicanas y sistema de bloqueo
-    ├── schedule_manager.py  # Control de horario (6 AM - 7:59 PM) y cola nocturna
-    ├── stock_manager.py     # Manejo seguro de existencias y comandos administrativos
-    ├── knowledge.py         # Conocimiento del negocio (horarios, uniformes, ubicación)
-    ├── tools.py             # Herramientas (apartados, visitas, catálogo)
-    └── google_services.py   # Conexión con Google Sheets y Google Calendar
+    ├── gemini_agent.py      # Agente inteligente de Gemini (Prompt, Conocimiento y Herramientas)
+    └── services.py          # Servicios unificados (Moderación, Existencias, Apartados, Horarios y Google)
 ```
