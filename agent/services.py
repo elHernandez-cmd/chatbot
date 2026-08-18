@@ -221,7 +221,7 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     comando = partes[0].lower()
     resto = partes[1].strip() if len(partes) > 1 else ""
     
-    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario", "/bloqueados", "/desbloquear", "/apartados", "/liquidar"]
+    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario", "/bloqueados", "/desbloquear", "/apartados", "/liquidar", "/comandos", "/ayuda"]
     if comando not in comandos_validos:
         return False, ""
     
@@ -235,9 +235,28 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
         return True, (
             "⛔ **Acceso Restringido**: Este comando es exclusivo para administradores de **Novedades Rosymar**.\n"
             "Para autenticarte, incluye tu PIN de administrador en el comando. Ejemplos:\n"
+            "• `/comandos PIN_SECRETO`\n"
             "• `/actualizar PIN_SECRETO tus existencias...`\n"
             "• `/verinventario PIN_SECRETO`\n"
-            "• `/apartados PIN_SECRETO`"
+            "• `/apartados PIN_SECRETO`\n"
+            "• `/bloqueados PIN_SECRETO`"
+        )
+        
+    if comando in ["/comandos", "/ayuda"]:
+        return True, (
+            "📋 **Lista de Comandos de Administrador (Novedades Rosymar):**\n\n"
+            "📦 **Inventario y Existencias:**\n"
+            "• `/actualizar <datos>` : Actualiza las existencias disponibles o agotadas.\n"
+            "• `/verinventario` : Consulta el inventario que el bot tiene cargado.\n"
+            "• `/limpiarinventario` : Restablece el inventario a los valores por defecto.\n\n"
+            "⏰ **Control de Apartados (15 Días):**\n"
+            "• `/apartados` : Muestra los apartados registrados, días transcurridos y estado.\n"
+            "• `/liquidar <ID_APARTADO>` : Marca un apartado como entregado/liquidado.\n\n"
+            "🛡️ **Moderación y Bloqueos:**\n"
+            "• `/bloqueados` : Muestra los usuarios bloqueados por insultos o groserías.\n"
+            "• `/desbloquear <ID_USUARIO>` : Reactiva la atención para un usuario.\n\n"
+            "ℹ️ **Información:**\n"
+            "• `/comandos` : Muestra esta lista de comandos disponibles."
         )
         
     if comando == "/actualizar":

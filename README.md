@@ -85,6 +85,12 @@ Una vez que tengas tu URL pública de Vercel, Render o del túnel local:
 
 Los administradores de la página pueden consultar y actualizar el inventario y existencias en tiempo real escribiendo directamente en el chat de Messenger:
 
+* **Ver lista completa de comandos:**
+  ```text
+  /comandos
+  ```
+  *(O con PIN la primera vez: `/comandos RosymarAdmin2026`)*
+
 * **Actualizar existencias:**
   ```text
   /actualizar RosymarAdmin2026 Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos talla Grande.
@@ -96,6 +102,11 @@ Los administradores de la página pueden consultar y actualizar el inventario y 
   /verinventario
   ```
   *(O con PIN si es la primera vez: `/verinventario RosymarAdmin2026`)*
+
+* **Restablecer inventario por defecto:**
+  ```text
+  /limpiarinventario
+  ```
 
 * **Ver apartados activos y días transcurridos:**
   ```text
