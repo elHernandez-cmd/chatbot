@@ -55,15 +55,27 @@ def enviar_mensaje_messenger(sender_id: str, texto_respuesta: str):
         except Exception as e:
             print(f"Excepción al enviar a Messenger: {e}")
 
+import time
+
 def atender_cliente(sender_id: str, texto_usuario: str):
-    """Procesa el mensaje con Gemini y responde al cliente en Messenger."""
+    """Procesa el mensaje con Gemini y responde al cliente en Messenger con pausas humanas."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
-    # Indicar 'visto' y 'escribiendo...'
+    # 1. Marcar como leído y activar "Escribiendo..."
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
     
+    # 2. Pausa natural humana (simula lectura del mensaje)
+    time.sleep(2)
+    
+    # 3. Procesar respuesta certera con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
+    
+    # 4. Mantener indicador de "Escribiendo..." brevemente antes de enviar
+    enviar_accion_messenger(sender_id, "typing_on")
+    time.sleep(1)
+    
+    # 5. Enviar mensaje final
     enviar_mensaje_messenger(sender_id, respuesta_ia)
 
 # --- 1. VERIFICACIÓN DEL WEBHOOK CON META (GET) ---
