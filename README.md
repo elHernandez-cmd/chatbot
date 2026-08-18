@@ -81,18 +81,41 @@ Una vez que tengas tu URL pública de Vercel, Render o del túnel local:
 
 ---
 
+## 👑 Comandos de Administrador (Actualización de Existencias en Vivo)
+
+Los administradores de la página pueden actualizar el inventario y existencias en tiempo real escribiendo directamente en el chat de Messenger:
+
+* **Actualizar existencias:**
+  ```text
+  .actualizar RosymarAdmin2026 Llegaron faldas CECyTE talla 32 y se agotaron los pants deportivos talla Grande.
+  ```
+  *(Una vez que envías el PIN la primera vez, tu usuario queda registrado como administrador y en los siguientes mensajes solo necesitas escribir `.actualizar <tus existencias>` sin volver a poner el PIN).*
+
+* **Ver inventario actual registrado:**
+  ```text
+  .verinventario
+  ```
+
+* **Restablecer inventario:**
+  ```text
+  .limpiarinventario
+  ```
+
+---
+
 ## 📂 Estructura del Proyecto
 
 ```text
 chatbot/
-├── .env.example             # Plantilla de variables de entorno
+├── .env.example             # Plantilla de variables de entorno (con PIN de admin)
 ├── requirements.txt         # Dependencias de Python (FastAPI, Gemini, etc.)
 ├── vercel.json              # Configuración de Serverless Rewrite para Vercel
-├── main.py                  # API FastAPI y Webhook de Facebook Messenger
+├── main.py                  # API FastAPI, Webhook y Comandos de Administración
 ├── api/
 │   └── index.py             # Entrada serverless para Vercel
 └── agent/
-    ├── gemini_agent.py      # Lógica de IA con Gemini y memoria contextual
+    ├── gemini_agent.py      # Lógica de IA con Gemini, memoria contextual e inventario
+    ├── stock_manager.py     # Manejo seguro de existencias y comandos administrativos
     ├── knowledge.py         # Conocimiento del negocio (horarios, uniformes, ubicación)
     ├── tools.py             # Herramientas (apartados, visitas, catálogo)
     └── google_services.py   # Conexión con Google Sheets y Google Calendar

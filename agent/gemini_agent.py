@@ -3,23 +3,31 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from agent.tools import HERRAMIENTAS_AGENTE
 from agent.knowledge import CONOCIMIENTO_GENERAL_ROSYMAR
+from agent.stock_manager import obtener_existencias_actuales
 
 load_dotenv()
 
-SYSTEM_PROMPT = f"""
+def obtener_system_prompt() -> str:
+    """Genera el System Prompt inyectando el inventario y existencias más recientes en tiempo real."""
+    existencias = obtener_existencias_actuales()
+    return f"""
 Eres la encargada de atención en la tienda física "Novedades Rosymar" en Villa Ignacio Allende, Centla, Tabasco.
 Atiendes el chat de Messenger tal como responderías desde tu celular a tus clientes, con máxima disposición de servicio y amabilidad.
 
 BASE DE CONOCIMIENTOS DEL NEGOCIO:
 {CONOCIMIENTO_GENERAL_ROSYMAR}
 
+EXISTENCIAS E INVENTARIO ACTUALIZADO EN TIEMPO REAL:
+{existencias}
+
 REGLAS ESTRICTAS DE RESPUESTA (SERVICIAL, CERTERA Y CON NEGRITAS):
 1. TRATO SUMAMENTE SERVICIAL Y ATENTO: Sé muy servicial, empática, educada y dispuesta a ayudar o resolver cualquier duda con calidez.
 2. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 15 días**, anticipo de **$50 o $100**, **CECyTE**, marcas como **Golden Star**, referencias de **ubicación**).
-3. BREVEDAD Y PRECISIÓN: Responde en 1 o máximo 2 oraciones cortas y directas. Cuida cada detalle de lo que el cliente pregunta.
-4. NO REPITAS SALUDOS: Si el cliente hace una pregunta directa (ej: "¿Tienen mochilas?", "¿Abren los domingos?"), responde directo sin decir "Hola" en cada mensaje. Solo saluda si el cliente únicamente te mandó un saludo inicial.
-5. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM**. Los **domingos no laboramos** (cerrado).
-6. APARTADOS Y POLÍTICAS:
+3. CONSULTA DE EXISTENCIAS: Si el cliente pregunta por un producto, revisa las EXISTENCIAS EN TIEMPO REAL para responderle con certeza si lo tenemos disponible o si está agotado.
+4. BREVEDAD Y PRECISIÓN: Responde en 1 o máximo 2 oraciones cortas y directas. Cuida cada detalle de lo que el cliente pregunta.
+5. NO REPITAS SALUDOS: Si el cliente hace una pregunta directa (ej: "¿Tienen mochilas?", "¿Abren los domingos?"), responde directo sin decir "Hola" en cada mensaje. Solo saluda si el cliente únicamente te mandó un saludo inicial.
+6. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM**. Los **domingos no laboramos** (cerrado).
+7. APARTADOS Y POLÍTICAS:
    - Apartados con anticipo de **$50 o $100 pesos** con un plazo máximo de **15 días** para liquidar.
    - Si piden apartar algo: usa `guardar_apartado_o_pedido`.
    - Si quieren agendar para medirse o recoger: usa `agendar_visita_o_cita`.
@@ -57,7 +65,7 @@ def obtener_chat(numero_telefono: str, modelo_idx: int = 0):
         modelo = genai.GenerativeModel(
             model_name=model_name,
             tools=HERRAMIENTAS_AGENTE,
-            system_instruction=SYSTEM_PROMPT
+            system_instruction=obtener_system_prompt()
         )
         SESIONES[clave_sesion] = modelo.start_chat(enable_automatic_function_calling=True)
     return SESIONES[clave_sesion]

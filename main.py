@@ -56,26 +56,39 @@ def enviar_mensaje_messenger(sender_id: str, texto_respuesta: str):
             print(f"Excepción al enviar a Messenger: {e}")
 
 import time
+from agent.stock_manager import procesar_comando_admin
 
 def atender_cliente(sender_id: str, texto_usuario: str):
-    """Procesa el mensaje con Gemini y responde al cliente en Messenger con pausas humanas."""
+    """Procesa el mensaje (comandos administrativos o atención con IA a clientes)."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
-    # 1. Marcar como leído y activar "Escribiendo..."
+    
+    # 1. Verificar si es un comando administrativo (.actualizar, .verinventario, etc.)
+    es_comando, respuesta_admin = procesar_comando_admin(sender_id, texto_usuario)
+    if es_comando:
+        print(f"[COMANDO ADMIN]: {respuesta_admin}")
+        enviar_accion_messenger(sender_id, "mark_seen")
+        enviar_mensaje_messenger(sender_id, respuesta_admin)
+        # Limpiar sesiones de chat para que el nuevo inventario se aplique de inmediato
+        from agent.gemini_agent import SESIONES
+        SESIONES.clear()
+        return
+
+    # 2. Flujo normal de cliente: marcar como leído y activar "Escribiendo..."
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
     
-    # 2. Pausa natural humana (simula lectura del mensaje)
+    # 3. Pausa natural humana (simula lectura del mensaje)
     time.sleep(2)
     
-    # 3. Procesar respuesta certera con Gemini
+    # 4. Procesar respuesta certera con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
     
-    # 4. Mantener indicador de "Escribiendo..." brevemente antes de enviar
+    # 5. Mantener indicador de "Escribiendo..." brevemente antes de enviar
     enviar_accion_messenger(sender_id, "typing_on")
     time.sleep(1)
     
-    # 5. Enviar mensaje final
+    # 6. Enviar mensaje final
     enviar_mensaje_messenger(sender_id, respuesta_ia)
 
 # --- 1. VERIFICACIÓN DEL WEBHOOK CON META (GET) ---
