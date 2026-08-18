@@ -57,38 +57,81 @@ def enviar_mensaje_messenger(sender_id: str, texto_respuesta: str):
 
 import time
 from agent.stock_manager import procesar_comando_admin
+from agent.moderation import (
+    es_usuario_bloqueado,
+    contiene_groserias,
+    registrar_infraccion_groseria
+)
+from agent.schedule_manager import (
+    esta_en_horario_atencion,
+    guardar_mensaje_pendiente,
+    obtener_y_limpiar_pendientes
+)
 
 def atender_cliente(sender_id: str, texto_usuario: str):
-    """Procesa el mensaje (comandos administrativos o atención con IA a clientes)."""
+    """Procesa el mensaje (comandos administrativos, moderación o atención con IA)."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
     
-    # 1. Verificar si es un comando administrativo (/actualizar, /verinventario, /limpiarinventario)
+    # 1. Verificar si el usuario está bloqueado permanentemente por insultos
+    if es_usuario_bloqueado(sender_id):
+        print(f"⛔ [MENSAJE IGNORADO]: El usuario {sender_id} está bloqueado por comportamiento grosero.")
+        return
+
+    # 2. Verificar si es un comando administrativo (/actualizar, /verinventario, /limpiarinventario, /bloqueados, /desbloquear)
     es_comando, respuesta_admin = procesar_comando_admin(sender_id, texto_usuario)
     if es_comando:
         print(f"[COMANDO ADMIN]: {respuesta_admin}")
         enviar_accion_messenger(sender_id, "mark_seen")
         enviar_mensaje_messenger(sender_id, respuesta_admin)
-        # Limpiar sesiones de chat para que el nuevo inventario se aplique de inmediato
         from agent.gemini_agent import SESIONES
         SESIONES.clear()
         return
 
-    # 2. Flujo normal de cliente: marcar como leído y activar "Escribiendo..."
+    # 3. Filtro de moderación: Detección estricta de insultos / groserías en México
+    if contiene_groserias(texto_usuario):
+        bloqueado_ahora = registrar_infraccion_groseria(sender_id)
+        if bloqueado_ahora:
+            print(f"⛔ [USUARIO BLOQUEADO]: {sender_id} fue bloqueado por insultos reiterados. No se responderá.")
+        else:
+            print(f"⚠️ [GROSERÍA DETECTADA]: Mensaje ofensivo de {sender_id}. No se envía respuesta.")
+        return
+
+    # 4. Control de horario: De 6:00 AM a 7:59 PM activo. Fuera de ese horario, no responder y encolar para la mañana.
+    if not esta_en_horario_atencion():
+        print(f"🌙 [FUERA DE HORARIO]: Mensaje de {sender_id} recibido después de las 7:59 PM o antes de las 6:00 AM. Guardando en cola para responder por la mañana.")
+        guardar_mensaje_pendiente(sender_id, texto_usuario)
+        return
+
+    # 5. Si estamos en horario activo (6:00 AM - 7:59 PM), procesar cualquier mensaje pendiente acumulado de la noche
+    pendientes = obtener_y_limpiar_pendientes()
+    for item in pendientes:
+        p_id = item.get("sender_id")
+        p_msg = item.get("mensaje")
+        if p_id and p_msg and not es_usuario_bloqueado(p_id):
+            try:
+                print(f"🌅 [RESPONDIENDO PENDIENTE NOCTURNO a {p_id}]: {p_msg}")
+                enviar_accion_messenger(p_id, "mark_seen")
+                enviar_accion_messenger(p_id, "typing_on")
+                resp_pendiente = procesar_mensaje_con_ia(p_id, p_msg)
+                enviar_mensaje_messenger(p_id, resp_pendiente)
+                time.sleep(1)
+            except Exception as e:
+                print(f"Error respondiendo pendiente a {p_id}: {e}")
+
+    # 6. Flujo normal de atención diurna: marcar como leído y activar "Escribiendo..."
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
     
-    # 3. Pausa natural humana (simula lectura del mensaje)
+    # 7. Pausa humana natural
     time.sleep(2)
     
-    # 4. Procesar respuesta certera con Gemini
+    # 8. Procesar respuesta ultra corta y concreta con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
     
-    # 5. Mantener indicador de "Escribiendo..." brevemente antes de enviar
+    # 9. Enviar respuesta final
     enviar_accion_messenger(sender_id, "typing_on")
     time.sleep(1)
-    
-    # 6. Enviar mensaje final
     enviar_mensaje_messenger(sender_id, respuesta_ia)
 
 # --- 1. VERIFICACIÓN DEL WEBHOOK CON META (GET) ---

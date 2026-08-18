@@ -70,7 +70,7 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     resto = partes[1].strip() if len(partes) > 1 else ""
     
     # Comprobar que sea exactamente uno de los comandos válidos (sin alias)
-    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario"]
+    comandos_validos = ["/actualizar", "/verinventario", "/limpiarinventario", "/bloqueados", "/desbloquear"]
     if comando not in comandos_validos:
         return False, ""
     
@@ -119,5 +119,22 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     elif comando == "/limpiarinventario":
         guardar_existencias(EXISTENCIAS_DEFAULT, admin_id=sender_id)
         return True, "🔄 **Inventario restablecido** a los valores predeterminados de la tienda."
+        
+    elif comando == "/bloqueados":
+        from agent.moderation import obtener_usuarios_bloqueados
+        bloqueados = obtener_usuarios_bloqueados()
+        if not bloqueados:
+            return True, "✅ No hay usuarios bloqueados actualmente."
+        lista = "\n".join([f"• ID `{uid}`: {info.get('motivo')} ({info.get('fecha_bloqueo')})" for uid, info in bloqueados.items()])
+        return True, f"⛔ **Usuarios Bloqueados por Groserías o Insultos:**\n\n{lista}\n\n*(Para desbloquear: `/desbloquear ID_USUARIO`)*"
+        
+    elif comando == "/desbloquear":
+        if not resto:
+            return True, "ℹ️ Escribe `/desbloquear <ID_USUARIO>` para reactivar la atención a un usuario."
+        from agent.moderation import desbloquear_usuario
+        res = desbloquear_usuario(resto)
+        if res:
+            return True, f"✅ El usuario `{resto}` ha sido desbloqueado con éxito."
+        return True, f"ℹ️ El usuario `{resto}` no estaba en la lista de bloqueados."
         
     return False, ""

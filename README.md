@@ -97,11 +97,25 @@ Los administradores de la página pueden consultar y actualizar el inventario y 
   ```
   *(O con PIN si es la primera vez: `/verinventario RosymarAdmin2026`)*
 
-* **Restablecer inventario:**
+* **Ver usuarios bloqueados por groserías:**
   ```text
-  /limpiarinventario
+  /bloqueados
   ```
-  *(O con PIN si es la primera vez: `/limpiarinventario RosymarAdmin2026`)*
+
+* **Desbloquear usuario:**
+  ```text
+  /desbloquear ID_USUARIO
+  ```
+
+---
+
+## 🛡️ Moderación, Filtro de Groserías y Horario Nocturno
+
+* **Filtro de Groserías e Insultos (México):** El bot detecta malas palabras, albures pesados e insultos comunes en México. Si un usuario envía un mensaje ofensivo, el bot **no responde**.
+* **Bloqueo Automático de Usuarios:** Si un usuario envía insultos reiterados, el bot lo bloquea permanentemente y descarta todos sus mensajes futuros.
+* **Horario de Atención Inteligente:**
+  * **Activo:** De **6:00 AM a 7:59 PM** (hora local de Tabasco / Centro de México).
+  * **Nocturno (después de 7:59 PM hasta las 6:00 AM):** El bot no responde de noche y guarda los mensajes en una cola segura para responderles automáticamente a los clientes a partir de las 6:00 AM.
 
 ---
 
@@ -112,11 +126,13 @@ chatbot/
 ├── .env.example             # Plantilla de variables de entorno (con PIN de admin)
 ├── requirements.txt         # Dependencias de Python (FastAPI, Gemini, etc.)
 ├── vercel.json              # Configuración de Serverless Rewrite para Vercel
-├── main.py                  # API FastAPI, Webhook y Comandos de Administración
+├── main.py                  # API FastAPI, Webhook, Moderación y Horarios
 ├── api/
 │   └── index.py             # Entrada serverless para Vercel
 └── agent/
-    ├── gemini_agent.py      # Lógica de IA con Gemini, memoria contextual e inventario
+    ├── gemini_agent.py      # Lógica de IA con Gemini y respuestas ultra concretas
+    ├── moderation.py        # Filtro de groserías mexicanas y sistema de bloqueo
+    ├── schedule_manager.py  # Control de horario (6 AM - 7:59 PM) y cola nocturna
     ├── stock_manager.py     # Manejo seguro de existencias y comandos administrativos
     ├── knowledge.py         # Conocimiento del negocio (horarios, uniformes, ubicación)
     ├── tools.py             # Herramientas (apartados, visitas, catálogo)
