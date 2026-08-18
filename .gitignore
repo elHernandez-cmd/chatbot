@@ -3,3 +3,6 @@
 google_credentials.json
 __pycache__/
 *.pyc
+*.pyo
+*rosymar*.json
+.pytest_cache/
