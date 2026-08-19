@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import json
 import unicodedata
@@ -6,6 +7,12 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from contextvars import ContextVar
 from dotenv import load_dotenv
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 load_dotenv()
 
@@ -155,9 +162,15 @@ def registrar_infraccion_groseria(sender_id: str) -> bool:
 def obtener_usuarios_bloqueados() -> dict:
     return _leer_json(BLOCKED_FILE, {})
 
-# --- 3. HORARIO DE ATENCIÓN Y COLA NOCTURNA ---
+# --- 3. HORARIO DE ATENCIÓN Y RESPUESTA NOCTURNA ---
+MENSAJE_FUERA_DE_HORARIO = (
+    "¡Hola! Gracias por escribir a **Novedades Rosymar** ✨\n\n"
+    "Por ahora estamos fuera de horario. Con gusto te atenderemos a partir de las **8:00 AM** (Horario en tienda: **Lunes a Sábado de 8:00 AM a 7:00 PM**).\n\n"
+    "¡Déjanos tu duda y que tengas una linda noche! 🌙"
+)
+
 def esta_en_horario_atencion() -> bool:
-    """Activo: 6:00 AM a 7:59 PM (06:00 a 19:59). Inactivo: 8:00 PM a 5:59 AM."""
+    """Activo: 6:00 AM a 7:59 PM (06:00 a 19:59). Fuera de horario (Noche): 8:00 PM a 5:59 AM."""
     hora = datetime.now(TIMEZONE_MEXICO).hour
     return 6 <= hora < 20
 

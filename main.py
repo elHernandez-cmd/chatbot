@@ -21,8 +21,7 @@ from agent.services import (
     contiene_groserias,
     registrar_infraccion_groseria,
     esta_en_horario_atencion,
-    guardar_mensaje_pendiente,
-    obtener_y_limpiar_pendientes,
+    MENSAJE_FUERA_DE_HORARIO,
     procesar_y_enviar_recordatorios,
     obtener_total_apartados
 )
@@ -88,40 +87,27 @@ def atender_cliente(sender_id: str, texto_usuario: str):
             print(f"⚠️ [GROSERÍA DETECTADA]: No se responde al mensaje ofensivo de {sender_id}.")
         return
 
-    # 4. Control de horario: Activo 6:00 AM a 7:59 PM. Fuera de ese rango se encola para la mañana.
+    # 4. Horario Nocturno (8:00 PM a 5:59 AM): Respuesta inmediata y cordial de cortesía (Opción 2)
     if not esta_en_horario_atencion():
-        print(f"🌙 [NOCHE / FUERA DE HORARIO]: Mensaje de {sender_id} guardado para responder a las 6:00 AM.")
-        guardar_mensaje_pendiente(sender_id, texto_usuario)
+        print(f"🌙 [NOCHE / FUERA DE HORARIO]: Enviando mensaje automático de cortesía a {sender_id}.")
+        enviar_accion_messenger(sender_id, "mark_seen")
+        enviar_accion_messenger(sender_id, "typing_on")
+        time.sleep(1)
+        enviar_mensaje_messenger(sender_id, MENSAJE_FUERA_DE_HORARIO)
         return
 
-    # 5. Si es horario diurno, responder mensajes nocturnos pendientes acumulados
-    pendientes = obtener_y_limpiar_pendientes()
-    for item in pendientes:
-        p_id = item.get("sender_id")
-        p_msg = item.get("mensaje")
-        if p_id and p_msg and not es_usuario_bloqueado(p_id):
-            try:
-                print(f"🌅 [RESPONDIENDO PENDIENTE NOCTURNO a {p_id}]: {p_msg}")
-                enviar_accion_messenger(p_id, "mark_seen")
-                enviar_accion_messenger(p_id, "typing_on")
-                resp_pendiente = procesar_mensaje_con_ia(p_id, p_msg)
-                enviar_mensaje_messenger(p_id, resp_pendiente)
-                time.sleep(1)
-            except Exception as e:
-                print(f"Error respondiendo pendiente a {p_id}: {e}")
-
-    # 6. Verificar y enviar recordatorios automáticos de apartados a los 15 días
+    # 5. Verificar y enviar recordatorios automáticos de apartados a los 15 días
     try:
         procesar_y_enviar_recordatorios(enviar_mensaje_messenger)
     except Exception as e:
         print(f"Aviso verificando recordatorios: {e}")
 
-    # 7. Flujo normal de atención diurna con IA
+    # 6. Flujo de atención diurna (6:00 AM a 7:59 PM) con IA
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
-    time.sleep(2)
+    time.sleep(1)
     
-    # 8. Generar y enviar respuesta ultra concreta con Gemini
+    # 7. Generar y enviar respuesta ultra concreta con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
     enviar_accion_messenger(sender_id, "typing_on")
