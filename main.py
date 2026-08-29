@@ -188,16 +188,24 @@ async def recibir_mensaje(request: Request):
                 # Caso B: Nota de Voz / Audio enviado por el cliente
                 attachments = message.get("attachments", [])
                 for att in attachments:
-                    if att.get("type") == "audio":
-                        audio_url = att.get("payload", {}).get("url")
-                        if sender_id and audio_url:
+                    tipo_adjunto = att.get("type", "").lower()
+                    audio_url = att.get("payload", {}).get("url")
+                    
+                    if audio_url and (tipo_adjunto in ["audio", "voice", "file", "fallback"] or ".mp4" in audio_url or ".aac" in audio_url or ".mp3" in audio_url):
+                        if sender_id:
                             try:
-                                print(f"🎧 [AUDIO ENTRANTE de {sender_id}]: Descargando nota de voz...")
-                                audio_res = requests.get(audio_url, timeout=12)
-                                if audio_res.status_code == 200:
+                                print(f"🎧 [AUDIO ENTRANTE de {sender_id}]: Descargando nota de voz ({tipo_adjunto})...")
+                                enviar_accion_messenger(sender_id, "mark_seen")
+                                enviar_accion_messenger(sender_id, "typing_on")
+                                headers = {"User-Agent": "Mozilla/5.0"}
+                                audio_res = requests.get(audio_url, headers=headers, timeout=15)
+                                if audio_res.status_code == 200 and audio_res.content:
                                     texto_transcrito = transcribir_audio_gemini(audio_res.content)
                                     if texto_transcrito:
                                         atender_cliente(sender_id, texto_transcrito, respondio_con_audio=True)
+                                    else:
+                                        print(f"Aviso: Audio de {sender_id} no pudo ser interpretado.")
+                                        enviar_mensaje_messenger(sender_id, "¡Hola! No pude escuchar con claridad tu nota de voz. ¿Podrías repetirla o escribirme tu consulta?")
                             except Exception as e:
                                 print(f"Error procesando nota de voz de {sender_id}: {e}")
         return Response(content="EVENT_RECEIVED", status_code=200)
