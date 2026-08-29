@@ -1,5 +1,7 @@
 import os
 import sys
+import io
+import json
 import time
 import requests
 from fastapi import FastAPI, Request, Response, Query
@@ -15,6 +17,7 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 load_dotenv()
 
 from agent.gemini_agent import procesar_mensaje_con_ia, SESIONES
+from agent.voice_service import generar_audio_elevenlabs, transcribir_audio_gemini
 from agent.services import (
     procesar_comando_admin,
     es_usuario_bloqueado,
@@ -60,8 +63,29 @@ def enviar_mensaje_messenger(sender_id: str, texto_respuesta: str):
         except Exception as e:
             print(f"Excepción enviando a Messenger: {e}")
 
-def atender_cliente(sender_id: str, texto_usuario: str):
-    """Orquesta la atención completa: moderación, comandos, horarios, recordatorios e IA."""
+def enviar_audio_messenger(sender_id: str, audio_bytes: bytes):
+    """Envía una nota de voz / audio generado por ElevenLabs a Messenger."""
+    if not FB_PAGE_ACCESS_TOKEN or not sender_id or not audio_bytes:
+        return
+    url = f"https://graph.facebook.com/v20.0/me/messages?access_token={FB_PAGE_ACCESS_TOKEN}"
+    payload = {
+        "recipient": json.dumps({"id": sender_id}),
+        "message": json.dumps({"attachment": {"type": "audio", "payload": {}}})
+    }
+    files = {
+        "filedata": ("respuesta_voz.mp3", io.BytesIO(audio_bytes), "audio/mp3")
+    }
+    try:
+        res = requests.post(url, data=payload, files=files, timeout=15)
+        if res.status_code == 200:
+            print(f"[AUDIO ENVIADO]: Nota de voz enviada exitosamente a {sender_id}.")
+        else:
+            print(f"Aviso enviando audio a Messenger ({res.status_code}): {res.text}")
+    except Exception as e:
+        print(f"Excepción enviando audio a Messenger: {e}")
+
+def atender_cliente(sender_id: str, texto_usuario: str, respondio_con_audio: bool = False):
+    """Orquesta la atención completa: moderación, comandos, horarios, recordatorios, IA y voz."""
     print(f"\n[MENSAJE MESSENGER de {sender_id}]: {texto_usuario}")
     
     # 1. Ignorar usuarios bloqueados por conducta ofensiva
@@ -105,14 +129,22 @@ def atender_cliente(sender_id: str, texto_usuario: str):
     # 6. Flujo de atención diurna (6:00 AM a 7:59 PM) con IA
     enviar_accion_messenger(sender_id, "mark_seen")
     enviar_accion_messenger(sender_id, "typing_on")
-    time.sleep(1)
     
-    # 7. Generar y enviar respuesta ultra concreta con Gemini
+    # 7. Generar respuesta concreta con Gemini
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
-    enviar_accion_messenger(sender_id, "typing_on")
-    time.sleep(1)
+    
+    # 8. Enviar respuesta en texto al cliente
     enviar_mensaje_messenger(sender_id, respuesta_ia)
+    
+    # 9. Generar y enviar nota de voz con ElevenLabs SOLO si el cliente envió una nota de voz
+    if respondio_con_audio:
+        try:
+            audio_voz = generar_audio_elevenlabs(respuesta_ia)
+            if audio_voz:
+                enviar_audio_messenger(sender_id, audio_voz)
+        except Exception as e:
+            print(f"Aviso generando voz de ElevenLabs: {e}")
 
 # --- RUTAS Y ENDPOINTS FASTAPI ---
 
@@ -130,7 +162,7 @@ def verificar_webhook(
 
 @app.post("/webhook")
 async def recibir_mensaje(request: Request):
-    """Recibe y procesa los eventos entrantes de Facebook Messenger."""
+    """Recibe y procesa los eventos entrantes de Facebook Messenger (Texto y Notas de Voz)."""
     try:
         data = await request.json()
     except Exception:
@@ -143,12 +175,31 @@ async def recibir_mensaje(request: Request):
                 message = messaging_event.get("message", {})
                 if message.get("is_echo"):
                     continue
+                
+                # Caso A: Mensaje de Texto tradicional
                 texto_usuario = message.get("text")
                 if sender_id and texto_usuario:
                     try:
-                        atender_cliente(sender_id, texto_usuario)
+                        atender_cliente(sender_id, texto_usuario, respondio_con_audio=False)
                     except Exception as e:
                         print(f"Error atendiendo a {sender_id}: {e}")
+                    continue
+
+                # Caso B: Nota de Voz / Audio enviado por el cliente
+                attachments = message.get("attachments", [])
+                for att in attachments:
+                    if att.get("type") == "audio":
+                        audio_url = att.get("payload", {}).get("url")
+                        if sender_id and audio_url:
+                            try:
+                                print(f"🎧 [AUDIO ENTRANTE de {sender_id}]: Descargando nota de voz...")
+                                audio_res = requests.get(audio_url, timeout=12)
+                                if audio_res.status_code == 200:
+                                    texto_transcrito = transcribir_audio_gemini(audio_res.content)
+                                    if texto_transcrito:
+                                        atender_cliente(sender_id, texto_transcrito, respondio_con_audio=True)
+                            except Exception as e:
+                                print(f"Error procesando nota de voz de {sender_id}: {e}")
         return Response(content="EVENT_RECEIVED", status_code=200)
 
     return {"status": "ok"}
