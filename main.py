@@ -134,17 +134,24 @@ def atender_cliente(sender_id: str, texto_usuario: str, respondio_con_audio: boo
     respuesta_ia = procesar_mensaje_con_ia(sender_id, texto_usuario)
     print(f"[RESPUESTA IA]: {respuesta_ia}")
     
-    # 8. Enviar respuesta en texto al cliente
-    enviar_mensaje_messenger(sender_id, respuesta_ia)
-    
-    # 9. Generar y enviar nota de voz con ElevenLabs SOLO si el cliente envió una nota de voz
+    # 8. Envío exclusivo según el canal (Audio vs Texto):
     if respondio_con_audio:
+        # El cliente envió audio: responder ÚNICAMENTE con audio de voz
+        audio_voz = None
         try:
             audio_voz = generar_audio_elevenlabs(respuesta_ia)
             if audio_voz:
                 enviar_audio_messenger(sender_id, audio_voz)
         except Exception as e:
             print(f"Aviso generando voz de ElevenLabs: {e}")
+            
+        # Si falló la generación de audio de ElevenLabs, enviar texto como respaldo
+        if not audio_voz:
+            print(f"[FALLBACK]: Enviando texto a {sender_id} por fallo en generación de audio.")
+            enviar_mensaje_messenger(sender_id, respuesta_ia)
+    else:
+        # El cliente envió texto: responder ÚNICAMENTE con texto
+        enviar_mensaje_messenger(sender_id, respuesta_ia)
 
 from fastapi import FastAPI, Request, Response, Query, BackgroundTasks
 
