@@ -146,6 +146,43 @@ def atender_cliente(sender_id: str, texto_usuario: str, respondio_con_audio: boo
         except Exception as e:
             print(f"Aviso generando voz de ElevenLabs: {e}")
 
+from fastapi import FastAPI, Request, Response, Query, BackgroundTasks
+
+# Caché en memoria para evitar bucles por reintentos de Facebook Messenger
+MENSAJES_PROCESADOS = set()
+MIDS_HISTORIAL = []
+
+def es_mensaje_duplicado(mid: str) -> bool:
+    """Retorna True si el mensaje ya fue recibido y procesado para evitar duplicados."""
+    if not mid:
+        return False
+    if mid in MENSAJES_PROCESADOS:
+        return True
+    MENSAJES_PROCESADOS.add(mid)
+    MIDS_HISTORIAL.append(mid)
+    if len(MIDS_HISTORIAL) > 600:
+        antiguo = MIDS_HISTORIAL.pop(0)
+        MENSAJES_PROCESADOS.discard(antiguo)
+    return False
+
+def procesar_audio_cliente(sender_id: str, audio_url: str, tipo_adjunto: str):
+    """Descarga, transcribe y atiende una nota de voz en segundo plano."""
+    try:
+        print(f"🎧 [AUDIO ENTRANTE de {sender_id}]: Descargando nota de voz ({tipo_adjunto})...")
+        enviar_accion_messenger(sender_id, "mark_seen")
+        enviar_accion_messenger(sender_id, "typing_on")
+        headers = {"User-Agent": "Mozilla/5.0"}
+        audio_res = requests.get(audio_url, headers=headers, timeout=15)
+        if audio_res.status_code == 200 and audio_res.content:
+            texto_transcrito = transcribir_audio_gemini(audio_res.content)
+            if texto_transcrito:
+                atender_cliente(sender_id, texto_transcrito, respondio_con_audio=True)
+            else:
+                print(f"Aviso: Audio de {sender_id} no pudo ser interpretado.")
+                enviar_mensaje_messenger(sender_id, "¡Hola! No pude escuchar con claridad tu nota de voz. ¿Podrías repetirla o escribirme tu consulta?")
+    except Exception as e:
+        print(f"Error procesando nota de voz de {sender_id}: {e}")
+
 # --- RUTAS Y ENDPOINTS FASTAPI ---
 
 @app.get("/webhook")
@@ -161,8 +198,8 @@ def verificar_webhook(
     return Response(content="Verificación fallida", status_code=403)
 
 @app.post("/webhook")
-async def recibir_mensaje(request: Request):
-    """Recibe y procesa los eventos entrantes de Facebook Messenger (Texto y Notas de Voz)."""
+async def recibir_mensaje(request: Request, background_tasks: BackgroundTasks):
+    """Recibe eventos de Facebook Messenger y responde inmediatamente en 200 OK para evitar bucles."""
     try:
         data = await request.json()
     except Exception:
@@ -171,18 +208,25 @@ async def recibir_mensaje(request: Request):
     if data.get("object") == "page":
         for entry in data.get("entry", []):
             for messaging_event in entry.get("messaging", []):
-                sender_id = messaging_event.get("sender", {}).get("id")
+                # 1. Ignorar ecos (mensajes enviados por la misma página o bot)
                 message = messaging_event.get("message", {})
-                if message.get("is_echo"):
+                if not message or message.get("is_echo") or message.get("app_id"):
                     continue
                 
+                # 2. Evitar bucle de reintentos de Facebook filtrando por ID único (mid)
+                mid = message.get("mid")
+                if mid and es_mensaje_duplicado(mid):
+                    print(f"⏩ [MENSAJE DUPLICADO IGNORADO]: {mid}")
+                    continue
+
+                sender_id = messaging_event.get("sender", {}).get("id")
+                if not sender_id:
+                    continue
+
                 # Caso A: Mensaje de Texto tradicional
                 texto_usuario = message.get("text")
-                if sender_id and texto_usuario:
-                    try:
-                        atender_cliente(sender_id, texto_usuario, respondio_con_audio=False)
-                    except Exception as e:
-                        print(f"Error atendiendo a {sender_id}: {e}")
+                if texto_usuario:
+                    background_tasks.add_task(atender_cliente, sender_id, texto_usuario, False)
                     continue
 
                 # Caso B: Nota de Voz / Audio enviado por el cliente
@@ -191,23 +235,11 @@ async def recibir_mensaje(request: Request):
                     tipo_adjunto = att.get("type", "").lower()
                     audio_url = att.get("payload", {}).get("url")
                     
-                    if audio_url and (tipo_adjunto in ["audio", "voice", "file", "fallback"] or ".mp4" in audio_url or ".aac" in audio_url or ".mp3" in audio_url):
-                        if sender_id:
-                            try:
-                                print(f"🎧 [AUDIO ENTRANTE de {sender_id}]: Descargando nota de voz ({tipo_adjunto})...")
-                                enviar_accion_messenger(sender_id, "mark_seen")
-                                enviar_accion_messenger(sender_id, "typing_on")
-                                headers = {"User-Agent": "Mozilla/5.0"}
-                                audio_res = requests.get(audio_url, headers=headers, timeout=15)
-                                if audio_res.status_code == 200 and audio_res.content:
-                                    texto_transcrito = transcribir_audio_gemini(audio_res.content)
-                                    if texto_transcrito:
-                                        atender_cliente(sender_id, texto_transcrito, respondio_con_audio=True)
-                                    else:
-                                        print(f"Aviso: Audio de {sender_id} no pudo ser interpretado.")
-                                        enviar_mensaje_messenger(sender_id, "¡Hola! No pude escuchar con claridad tu nota de voz. ¿Podrías repetirla o escribirme tu consulta?")
-                            except Exception as e:
-                                print(f"Error procesando nota de voz de {sender_id}: {e}")
+                    if audio_url and (tipo_adjunto in ["audio", "voice", "file", "fallback"] or any(ext in audio_url for ext in [".mp4", ".aac", ".mp3", ".m4a"])):
+                        background_tasks.add_task(procesar_audio_cliente, sender_id, audio_url, tipo_adjunto)
+                        break
+
+        # Respuesta ultra rápida (en < 0.05s) para que Facebook NUNCA reintente enviar el mismo evento
         return Response(content="EVENT_RECEIVED", status_code=200)
 
     return {"status": "ok"}
