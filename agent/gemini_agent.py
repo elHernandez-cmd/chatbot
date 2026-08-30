@@ -151,13 +151,14 @@ HERRAMIENTAS_AGENTE = [
 ]
 
 # --- 3. SYSTEM PROMPT Y MODELOS DE GEMINI ---
-def obtener_system_prompt() -> str:
+def obtener_system_prompt(nombre_cliente: str = "") -> str:
     existencias = obtener_existencias_actuales()
+    info_cliente = f"- Nombre del cliente en este chat: {nombre_cliente}\n" if nombre_cliente else ""
     return f"""
 Eres la encargada de atención en la tienda física "Novedades Rosymar" en Villa Ignacio Allende.
 Respondes desde tu celular por Messenger a tus clientes.
 
-BASE DE CONOCIMIENTOS:
+{info_cliente}BASE DE CONOCIMIENTOS:
 {CONOCIMIENTO_GENERAL_ROSYMAR}
 
 EXISTENCIAS EN TIEMPO REAL:
@@ -173,7 +174,9 @@ REGLAS DE RESPUESTA (HUMANA, ULTRA CORTA Y NATURAL):
 5. NUNCA INVENTES NOMBRES: Si preguntan quién atiende o mencionan nombres de personas, di únicamente que hablarás con **la encargada**.
 6. MEMORIA ESTRICTA DE PRODUCTO: Si ya hablaron de un producto (ej: uniforme CECyTE) y luego preguntan precios o tallas, responde directo sobre ese producto. PROHIBIDO preguntar "¿De qué producto buscas?".
 7. HORARIO: **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
-8. NO REPITAS SALUDOS: Si ya están platicando, no vuelvas a saludar.
+8. NO REPITAS SALUDOS NI EL NOMBRE DEL CLIENTE:
+   - Si ya están platicando, no vuelvas a saludar.
+   - REGLA DE ORO DEL NOMBRE: Menciona el nombre del cliente MÁXIMO 1 SOLA VEZ (al confirmarle su apartado). PROHIBIDO repetir el nombre del cliente en cada respuesta.
 9. APARTADOS Y FÓRMULA EXACTA DE CONFIRMACIÓN:
    - **Anticipo para apartar:** Cualquier producto se aparta con un anticipo de **$50 o $100 pesos**.
    - **Plazos para liquidar:**
@@ -209,10 +212,13 @@ def obtener_chat(numero_telefono: str, modelo_idx: int = 0):
     clave_sesion = f"{numero_telefono}_{model_name}"
     if clave_sesion not in SESIONES:
         try:
+            perfil = obtener_perfil_messenger(numero_telefono)
+            nombre_perfil = perfil.get("nombre", "")
+            
             modelo = genai.GenerativeModel(
                 model_name=model_name,
                 tools=HERRAMIENTAS_AGENTE,
-                system_instruction=obtener_system_prompt()
+                system_instruction=obtener_system_prompt(nombre_perfil)
             )
             # Reconstruir el historial persistente para no perder la memoria entre peticiones
             historial_previo = obtener_historial_usuario(numero_telefono)
@@ -252,17 +258,13 @@ def extraer_texto(respuesta) -> str:
 def procesar_mensaje_con_ia(numero_telefono: str, mensaje_usuario: str) -> str:
     """Procesa el mensaje con IA de forma humana, ultra corta y resiliente."""
     CURRENT_SENDER_ID.set(str(numero_telefono))
-    perfil = obtener_perfil_messenger(numero_telefono)
-    nombre_perfil = perfil.get("nombre", "Cliente")
-    
-    contexto = f"[Cliente de Messenger: {nombre_perfil}]: {mensaje_usuario}"
     
     for idx, nombre_modelo in enumerate(MODELOS_PREFERIDOS):
         try:
             chat = obtener_chat(numero_telefono, modelo_idx=idx)
             if not chat:
                 continue
-            respuesta = chat.send_message(contexto)
+            respuesta = chat.send_message(mensaje_usuario)
             texto_final = extraer_texto(respuesta)
             if texto_final:
                 # Guardar el intercambio en memoria persistente
