@@ -405,8 +405,8 @@ def crear_apartado_memoria(nombre_cliente: str = "", telefono: str = "", articul
         
     art_lower = articulo_y_talla.lower()
     if dias_plazo is None:
-        # Uniformes escolares tienen 3 días de plazo máximo; mochilas y ropa tienen 15 días
-        if any(w in art_lower for w in ["uniforme", "cecyte", "primaria", "secundaria", "playera", "falda", "pantalon", "pants"]):
+        # Uniformes escolares y Mochilas tienen 3 días de plazo máximo para liquidar; ropa y demás tienen 15 días
+        if any(w in art_lower for w in ["uniforme", "cecyte", "primaria", "secundaria", "playera", "falda", "pantalon", "pants", "mochila", "golden star", "lapicera", "lonchera"]):
             dias_plazo = 3
         else:
             dias_plazo = 15

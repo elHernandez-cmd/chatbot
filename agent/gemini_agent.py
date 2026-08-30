@@ -38,9 +38,9 @@ PRODUCTOS Y MARCAS:
 
 POLÍTICAS DE PAGO Y APARTADOS:
 - Pagos: Efectivo y Transferencias bancarias.
-- Sistema de Apartado (Se aparta con un anticipo de $50 o $100 pesos para cualquier artículo):
-  * **Uniformes Escolares:** Plazo de **3 días** para liquidar (apartando con **$50 o $100 pesos**).
-  * **Mochilas, Ropa y demás artículos:** Plazo de **15 días** para liquidar (apartando con **$50 o $100 pesos**).
+- Sistema de Apartado (Cualquier artículo se aparta con un anticipo de $50 o $100 pesos):
+  * **Uniformes Escolares y Mochilas:** Plazo de **3 días** para liquidar (apartando con **$50 o $100 pesos**).
+  * **Ropa y demás artículos:** Plazo de **15 días** para liquidar (apartando con **$50 o $100 pesos**).
 - Cambios de talla: Se aceptan cambios si la prenda está limpia, con etiquetas y en perfecto estado.
 """
 
@@ -94,7 +94,7 @@ def guardar_apartado_o_pedido(articulo_y_talla: str, nombre_cliente: str = "", t
         )
         return {
             "status": "success",
-            "mensaje": f"¡Listo! Ya quedó apartado tu {articulo_y_talla} para {nombre_real}. Tienes {dias} días para liquidar con $50 o $100."
+            "mensaje": f"¡Listo! Ya quedó apartado tu {articulo_y_talla} para {nombre_real}. Tienes {dias} días para liquidar apartando con $50 o $100."
         }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
@@ -148,12 +148,12 @@ REGLAS DE RESPUESTA (HUMANA, ULTRA CORTA Y NATURAL):
 7. HORARIO: **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
 8. NO REPITAS SALUDOS: Si ya están platicando, no vuelvas a saludar.
 9. APARTADOS Y FÓRMULA EXACTA DE CONFIRMACIÓN:
-   - Cualquier producto se aparta con **$50 o $100 pesos**.
-   - **Uniformes:** Plazo de **3 días**.
-   - **Mochilas y Ropa:** Plazo de **15 días**.
+   - Cualquier producto se aparta con un anticipo de **$50 o $100 pesos**.
+   - **Uniformes Escolares y Mochilas:** Tienen un plazo de **3 días** para liquidar (apartando con **$50 o $100 pesos**).
+   - **Ropa de toda la familia y demás productos:** Tienen un plazo de **15 días** para liquidar (apartando igualmente con **$50 o $100 pesos**).
    - CERO PREGUNTAS DE DATOS: No pidas nombre ni teléfono. Ejecuta `guardar_apartado_o_pedido(articulo_y_talla)` de inmediato.
    - FÓRMULA OBLIGATORIA AL CONFIRMAR APARTADO: Di exactamente:
-     «¡Listo! Ya quedó apartado tu [producto] para [nombre_cliente]. Tienes [3 días / 15 días] para liquidar con $50 o $100.»
+     «¡Listo! Ya quedó apartado tu [producto] para [nombre_cliente]. Tienes [3 días / 15 días] para liquidar apartando con $50 o $100.»
 """
 
 MODELOS_PREFERIDOS = [
