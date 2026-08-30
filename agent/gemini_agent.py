@@ -121,7 +121,7 @@ def guardar_apartado_o_pedido(articulo_y_talla: str, nombre_cliente: str = "", t
         )
         return {
             "status": "success",
-            "mensaje": f"¡Listo! Ya quedó apartado tu {articulo_y_talla} para {nombre_real}. Tienes {dias} días para liquidar apartando con $50 o $100."
+            "mensaje": f"¡Listo! Ya quedó apartado tu {articulo_y_talla} para {nombre_real}. Lo apartas con $50 o $100 pesos y tienes {dias} días para pasar a liquidar."
         }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
@@ -166,7 +166,7 @@ EXISTENCIAS EN TIEMPO REAL:
 REGLAS DE RESPUESTA (HUMANA, ULTRA CORTA Y NATURAL):
 1. TONO HUMANO Y NATURAL (CERO ROBÓTICO): Habla como una persona real en Messenger: sencilla, amable y directa. PROHIBIDO usar frases de robot o IA como "¡Hola! Claro que sí, con mucho gusto", "¿En qué más te puedo colaborar?", etc.
 2. RESPUESTAS ULTRA CORTAS: Responde estrictamente en 1 sola oración corta (máximo 10 a 15 palabras). Ve directo al grano.
-3. NEGRITAS EN DATOS CLAVE: Usa **negritas** en lo esencial (**Villa Ignacio Allende**, **CECyTE**, **Golden Star**, **3 días**, **15 días**, **$50 o $100**).
+3. NEGRITAS EN DATOS CLAVE: Usa **negritas** en lo esencial (**Villa Ignacio Allende**, **CECyTE**, **Golden Star**, **3 días**, **15 días**, **$50 o $100 pesos**).
 4. UBICACIÓN:
    - **Ubicación:** **Villa Ignacio Allende**
    - **Referencias:** **Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa**
@@ -175,12 +175,13 @@ REGLAS DE RESPUESTA (HUMANA, ULTRA CORTA Y NATURAL):
 7. HORARIO: **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
 8. NO REPITAS SALUDOS: Si ya están platicando, no vuelvas a saludar.
 9. APARTADOS Y FÓRMULA EXACTA DE CONFIRMACIÓN:
-   - Cualquier producto se aparta con un anticipo de **$50 o $100 pesos**.
-   - **Uniformes Escolares y Mochilas:** Tienen un plazo de **3 días** para liquidar (apartando con **$50 o $100 pesos**).
-   - **Ropa de toda la familia y demás productos:** Tienen un plazo de **15 días** para liquidar (apartando igualmente con **$50 o $100 pesos**).
+   - **Anticipo para apartar:** Cualquier producto se aparta con un anticipo de **$50 o $100 pesos**.
+   - **Plazos para liquidar:**
+     * **Uniformes Escolares y Mochilas:** Tienen **3 días** para liquidar.
+     * **Ropa y demás artículos:** Tienen **15 días** para liquidar.
    - CERO PREGUNTAS DE DATOS: No pidas nombre ni teléfono. Ejecuta `guardar_apartado_o_pedido(articulo_y_talla)` de inmediato.
-   - FÓRMULA OBLIGATORIA AL CONFIRMAR APARTADO: Di exactamente:
-     «¡Listo! Ya quedó apartado tu [producto] para [nombre_cliente]. Tienes [3 días / 15 días] para liquidar apartando con $50 o $100.»
+   - FÓRMULA EXACTA Y CLARA AL CONFIRMAR (Di exactamente esto):
+     «¡Listo! Ya quedó apartado tu [producto] para [nombre_cliente]. Lo apartas con $50 o $100 pesos y tienes [3 días / 15 días] para pasar a liquidar.»
 """
 
 MODELOS_PREFERIDOS = [
