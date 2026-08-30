@@ -28,28 +28,28 @@ HORARIOS Y ATENCIÓN:
 - Horario de tienda: Lunes a Sábado de 8:00 AM a 7:00 PM. Domingos cerrado.
 
 CATÁLOGO OFICIAL DE UNIFORMES ESCOLARES EN VENTA:
-1. Preescolar / Jardines de Niños:
-   - Jardín de Niños Las Flores
-   - Preescolar Comunitario
-   - Jardín de Niños Benito Juárez García
-   - Jardín de Niños José María Pino Suárez
-   - Jardín de Niños María Montessori
-2. Escuelas Primarias:
-   - Escuela Primaria Domingo Faustino Sarmiento
-   - Escuela Primaria General Emiliano Zapata
-   - Escuela Primaria Benito Juárez
-   - Escuela Primaria José María Pino Suárez
-   - Escuela Primaria Vicente Suárez
-3. Escuelas Secundarias y Telesecundarias:
-   - Escuela Secundaria General Ignacio Allende
-   - Escuela Secundaria Técnica Núm. 4
-   - Escuela Secundaria Lic. Tomás Garrido Canabal
-   - Telesecundaria Guadalupe Victoria
-   - Telesecundaria Álvaro de la Cruz
-   - Telesecundaria General Ignacio Zaragoza
+1. Preescolar:
+   - Las Flores
+   - Comunitario
+   - Benito Juárez García
+   - José María Pino Suárez
+   - María Montessori
+2. Primarias:
+   - Domingo Faustino Sarmiento
+   - Emiliano Zapata
+   - Benito Juárez
+   - José María Pino Suárez
+   - Vicente Suárez
+3. Secundarias y Telesecundarias:
+   - Ignacio Allende
+   - Técnica Núm. 4
+   - Tomás Garrido Canabal
+   - Guadalupe Victoria
+   - Álvaro de la Cruz
+   - Ignacio Zaragoza
 4. Nivel Medio Superior / Bachilleratos:
-   - Plantel Núm. 5 del CECyTE Tabasco
-   - Plantel Núm. 18 del Colegio de Bachilleres de Tabasco (COBATAB)
+   - CECyTE Tabasco
+   - COBATAB 18
 (Prendas disponibles: playeras polo con logo bordado, camisas, pantalones de vestir, faldas, calcetas y pants deportivos).
 
 MOCHILAS Y ACCESORIOS:
@@ -79,7 +79,7 @@ def consultar_informacion_tienda(tema: str) -> dict:
             "Manejamos uniformes para: Preescolares (Las Flores, Comunitario, Benito Juárez, Pino Suárez, Montessori), "
             "Primarias (Sarmiento, Zapata, Benito Juárez, Pino Suárez, Vicente Suárez), "
             "Secundarias/Telesecundarias (Ignacio Allende, Técnica 4, Tomás Garrido, Guadalupe Victoria, Álvaro de la Cruz, Zaragoza), "
-            "CECyTE Plantel 5 y COBATAB Plantel 18."
+            "CECyTE y COBATAB 18."
         ),
         "mochilas": "Gran variedad de mochilas escolares resistentes (marca Golden Star y más) para todos los grados.",
         "ropa": "Ropa de calidad para toda la familia: damas, caballeros, niños y vestidos para ocasiones especiales.",

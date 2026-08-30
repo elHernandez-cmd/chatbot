@@ -218,10 +218,10 @@ def obtener_y_limpiar_pendientes() -> list:
     return pendientes
 
 # --- 4. INVENTARIO, EXISTENCIAS Y COMANDOS DE ADMINISTRADOR ---
-EXISTENCIAS_DEFAULT = """- Preescolar / Jardines de Niños: Jardín de Niños Las Flores, Preescolar Comunitario, Jardín de Niños Benito Juárez García, Jardín de Niños José María Pino Suárez, Jardín de Niños María Montessori.
-- Escuelas Primarias: Escuela Primaria Domingo Faustino Sarmiento, Escuela Primaria General Emiliano Zapata, Escuela Primaria Benito Juárez, Escuela Primaria José María Pino Suárez, Escuela Primaria Vicente Suárez.
-- Secundarias y Telesecundarias: Escuela Secundaria General Ignacio Allende, Escuela Secundaria Técnica Núm. 4, Escuela Secundaria Lic. Tomás Garrido Canabal, Telesecundaria Guadalupe Victoria, Telesecundaria Álvaro de la Cruz, Telesecundaria General Ignacio Zaragoza.
-- Nivel Medio Superior: Plantel Núm. 5 del CECyTE Tabasco, Plantel Núm. 18 del Colegio de Bachilleres de Tabasco (COBATAB).
+EXISTENCIAS_DEFAULT = """- Preescolar: Las Flores, Comunitario, Benito Juárez García, José María Pino Suárez, María Montessori.
+- Primarias: Domingo Faustino Sarmiento, Emiliano Zapata, Benito Juárez, José María Pino Suárez, Vicente Suárez.
+- Secundarias y Telesecundarias: Ignacio Allende, Técnica Núm. 4, Tomás Garrido Canabal, Guadalupe Victoria, Álvaro de la Cruz, Ignacio Zaragoza.
+- Nivel Medio Superior: CECyTE Tabasco, COBATAB 18.
 - Mochilas escolares Golden Star (juveniles, con ruedas y lapiceras): En existencia.
 - Ropa para toda la familia (damas, caballeros, niños): En existencia."""
 
