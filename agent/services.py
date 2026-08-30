@@ -218,8 +218,10 @@ def obtener_y_limpiar_pendientes() -> list:
     return pendientes
 
 # --- 4. INVENTARIO, EXISTENCIAS Y COMANDOS DE ADMINISTRADOR ---
-EXISTENCIAS_DEFAULT = """- Uniformes CECyTE (playeras, pantalones, faldas): En existencia.
-- Uniformes de Primaria y Secundaria de la zona: En existencia.
+EXISTENCIAS_DEFAULT = """- Preescolar / Jardines de Niños: Jardín de Niños Las Flores, Preescolar Comunitario, Jardín de Niños Benito Juárez García, Jardín de Niños José María Pino Suárez, Jardín de Niños María Montessori.
+- Escuelas Primarias: Escuela Primaria Domingo Faustino Sarmiento, Escuela Primaria General Emiliano Zapata, Escuela Primaria Benito Juárez, Escuela Primaria José María Pino Suárez, Escuela Primaria Vicente Suárez.
+- Secundarias y Telesecundarias: Escuela Secundaria General Ignacio Allende, Escuela Secundaria Técnica Núm. 4, Escuela Secundaria Lic. Tomás Garrido Canabal, Telesecundaria Guadalupe Victoria, Telesecundaria Álvaro de la Cruz, Telesecundaria General Ignacio Zaragoza.
+- Nivel Medio Superior: Plantel Núm. 5 del CECyTE Tabasco, Plantel Núm. 18 del Colegio de Bachilleres de Tabasco (COBATAB).
 - Mochilas escolares Golden Star (juveniles, con ruedas y lapiceras): En existencia.
 - Ropa para toda la familia (damas, caballeros, niños): En existencia."""
 
@@ -406,7 +408,14 @@ def crear_apartado_memoria(nombre_cliente: str = "", telefono: str = "", articul
     art_lower = articulo_y_talla.lower()
     if dias_plazo is None:
         # Uniformes escolares y Mochilas tienen 3 días de plazo máximo para liquidar; ropa y demás tienen 15 días
-        if any(w in art_lower for w in ["uniforme", "cecyte", "primaria", "secundaria", "playera", "falda", "pantalon", "pants", "mochila", "golden star", "lapicera", "lonchera"]):
+        palabras_3_dias = [
+            "uniforme", "cecyte", "cobatab", "bachiller", "primaria", "secundaria", "telesecundaria",
+            "jardin", "preescolar", "comunitario", "montessori", "sarmiento", "zapata", "vicente suarez",
+            "tomas garrido", "guadalupe victoria", "alvaro de la cruz", "zaragoza", "las flores",
+            "benito juarez", "pino suarez", "tecnica 4", "playera", "falda", "pantalon", "pants",
+            "mochila", "golden star", "lapicera", "lonchera"
+        ]
+        if any(w in art_lower for w in palabras_3_dias):
             dias_plazo = 3
         else:
             dias_plazo = 15
