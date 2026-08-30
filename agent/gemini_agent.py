@@ -7,7 +7,6 @@ from agent.services import (
     CURRENT_SENDER_ID,
     crear_apartado_memoria,
     guardar_fila_sheets,
-    insertar_evento_calendar,
     obtener_historial_usuario,
     guardar_intercambio_historial
 )
@@ -81,37 +80,9 @@ def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_tal
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 
-def agendar_visita_o_cita(nombre_cliente: str, telefono: str, fecha: str, hora: str, motivo: str) -> dict:
-    """
-    Agenda una visita o cita en Google Calendar y Sheets (ej: para medirse uniformes).
-    Args:
-        nombre_cliente: Nombre del cliente.
-        telefono: Teléfono del cliente.
-        fecha: Fecha en formato AAAA-MM-DD (ej: 2026-08-20).
-        hora: Hora en formato 24h (ej: 17:00).
-        motivo: Motivo de la cita (ej: 'Medición de uniforme CECyTE').
-    """
-    try:
-        inicio = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
-        fin = inicio + timedelta(minutes=30)
-        insertar_evento_calendar(
-            titulo=f"Visita: {nombre_cliente} ({motivo})",
-            fecha_inicio_iso=inicio.isoformat(),
-            fecha_fin_iso=fin.isoformat(),
-            descripcion=f"Cliente: {nombre_cliente}\nTeléfono: {telefono}\nMotivo: {motivo}"
-        )
-        guardar_fila_sheets(
-            pestana="Visitas_Agendadas",
-            datos=[datetime.now().strftime("%Y-%m-%d %H:%M"), nombre_cliente, telefono, f"{fecha} {hora}", motivo]
-        )
-        return {"status": "success", "mensaje": f"Visita confirmada para el {fecha} a las {hora}."}
-    except Exception as e:
-        return {"status": "error", "mensaje": str(e)}
-
 HERRAMIENTAS_AGENTE = [
     consultar_informacion_tienda,
-    guardar_apartado_o_pedido,
-    agendar_visita_o_cita
+    guardar_apartado_o_pedido
 ]
 
 # --- 3. SYSTEM PROMPT Y MODELOS DE GEMINI ---
@@ -138,10 +109,9 @@ REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 5. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
 6. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
 7. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
-8. APARTADOS Y POLÍTICAS:
-   - Apartados con anticipo de **$50 o $100 pesos** y plazo de **15 días** para liquidar.
-   - Si piden apartar algo: usa la herramienta `guardar_apartado_o_pedido`.
-   - Si quieren agendar para medirse o recoger: usa `agendar_visita_o_cita`.
+8. APARTADOS Y VISITAS A TIENDA:
+   - Apartados con anticipo de **$50 o $100 pesos** y plazo de **15 días** para liquidar (usa la herramienta `guardar_apartado_o_pedido`).
+   - Para medirse prendas o comprar directamente: invítalos a pasar a la tienda en Villa Ignacio Allende en nuestro horario habitual sin necesidad de cita.
    - Si piden fiado o descuento: diles amablemente que lo consultarás con la encargada.
 """
 
