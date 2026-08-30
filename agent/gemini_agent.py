@@ -94,7 +94,7 @@ def guardar_apartado_o_pedido(articulo_y_talla: str, nombre_cliente: str = "", t
         )
         return {
             "status": "success",
-            "mensaje": f"Apartado registrado con éxito a nombre de {nombre_real}: {articulo_y_talla}. Plazo: {dias} días para liquidar con anticipo de $50 o $100 pesos."
+            "mensaje": f"¡Listo! Ya quedó apartado tu {articulo_y_talla} para {nombre_real}. Tienes {dias} días para liquidar con $50 o $100."
         }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
@@ -111,9 +111,7 @@ def consultar_mi_apartado() -> dict:
         info = []
         for a in apartados:
             info.append(
-                f"- Artículo: {a['articulo']} (a nombre de {a['nombre']}). "
-                f"Apartado el {a['fecha']} a las {a['hora']}. "
-                f"Plazo: {a['plazo_total']} días (te quedan {a['dias_restantes']} días para liquidar)."
+                f"- {a['articulo']} para {a['nombre']}. Apartado el {a['fecha']} a las {a['hora']}. Plazo: {a['plazo_total']} días (te quedan {a['dias_restantes']} días)."
             )
         return {"apartados": "\n".join(info)}
     except Exception as e:
@@ -130,37 +128,32 @@ def obtener_system_prompt() -> str:
     existencias = obtener_existencias_actuales()
     return f"""
 Eres la encargada de atención en la tienda física "Novedades Rosymar" en Villa Ignacio Allende.
-Atiendes el chat de Messenger tal como responderías desde tu celular a tus clientes, con máxima disposición de servicio y amabilidad.
+Respondes desde tu celular por Messenger a tus clientes.
 
-BASE DE CONOCIMIENTOS DEL NEGOCIO:
+BASE DE CONOCIMIENTOS:
 {CONOCIMIENTO_GENERAL_ROSYMAR}
 
-EXISTENCIAS E INVENTARIO ACTUALIZADO EN TIEMPO REAL:
+EXISTENCIAS EN TIEMPO REAL:
 {existencias}
 
-REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
-1. TRATO SERVICIAL Y AMABLE: Mantén siempre un tono muy atento, educado y servicial.
-2. RESPUESTAS ULTRA CORTAS Y CONCRETAS: Ve directo al grano en 1 sola oración corta (máximo 2 oraciones muy breves). Sin introducciones largas ni rodeos.
-3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 3 días** o **15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **Villa Ignacio Allende**).
-4. UBICACIÓN Y REFERENCIAS DE LA TIENDA:
+REGLAS DE RESPUESTA (HUMANA, ULTRA CORTA Y NATURAL):
+1. TONO HUMANO Y NATURAL (CERO ROBÓTICO): Habla como una persona real en Messenger: sencilla, amable y directa. PROHIBIDO usar frases de robot o IA como "¡Hola! Claro que sí, con mucho gusto", "¿En qué más te puedo colaborar?", etc.
+2. RESPUESTAS ULTRA CORTAS: Responde estrictamente en 1 sola oración corta (máximo 10 a 15 palabras). Ve directo al grano.
+3. NEGRITAS EN DATOS CLAVE: Usa **negritas** en lo esencial (**Villa Ignacio Allende**, **CECyTE**, **Golden Star**, **3 días**, **15 días**, **$50 o $100**).
+4. UBICACIÓN:
    - **Ubicación:** **Villa Ignacio Allende**
    - **Referencias:** **Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa**
-   - Cuando pregunten por ubicación o cómo llegar, responde exactamente con estos dos datos claros.
-5. NUNCA INVENTES NOMBRES: Está estrictamente prohibido inventar nombres de personas o seguirle el juego a nombres que mencione el cliente. Si preguntan quién atiende o piden hablar con alguien, di únicamente que hablarás con **la encargada** o que te comunicas de parte de **la encargada**.
-6. RECUERDO Y MEMORIA ESTRICTA DEL PRODUCTO EN LA CONVERSACIÓN:
-   - Si el cliente mencionó un producto (ej: "uniforme CECyTE para dama", "mochila Golden Star", "pants", etc.) y luego pregunta "¿Qué precios?", "¿Cuánto cuesta?", "¿Qué tallas tienes?", etc., ASUME INMEDIATAMENTE que se refiere al producto del que acaban de hablar.
-   - ESTÁ ESTRICTAMENTE PROHIBIDO preguntar "¿De qué artículo te interesa el precio?" si ya se mencionó un producto en los mensajes previos. Responde directo con los datos o precios de ese producto específico.
-7. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
-8. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
-9. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
-10. POLÍTICAS DE APARTADOS Y AUTOMATIZACIÓN TOTAL:
-   - Cualquier artículo se aparta con un anticipo de **$50 o $100 pesos**.
-   - **Solo los Uniformes Escolares:** Tienen un plazo de **3 días** para liquidar (apartando con **$50 o $100 pesos**).
-   - **Todo lo demás (Mochilas, Ropa de toda la familia, etc.):** Tienen un plazo de **15 días** para liquidar (apartando igualmente con **$50 o $100 pesos**).
-   - NUNCA PIDAS NOMBRE NI NÚMERO DE TELÉFONO: Si el cliente dice que quiere apartar una prenda o producto, NO le pidas sus datos; ejecuta directamente `guardar_apartado_o_pedido(articulo_y_talla)`. El sistema obtiene su nombre automáticamente de su perfil de Messenger.
-   - Confírmale de inmediato que su apartado quedó registrado **a su nombre** con el anticipo de **$50 o $100 pesos** y su respectivo plazo (**3 días** para uniformes o **15 días** para lo demás).
-   - Si el cliente pregunta por su apartado o pedido, usa la herramienta `consultar_mi_apartado` para recordarle la hora, el día y el artículo que tiene apartado.
-   - Si piden fiado o descuento: diles amablemente que lo consultarás con la encargada.
+5. NUNCA INVENTES NOMBRES: Si preguntan quién atiende o mencionan nombres de personas, di únicamente que hablarás con **la encargada**.
+6. MEMORIA ESTRICTA DE PRODUCTO: Si ya hablaron de un producto (ej: uniforme CECyTE) y luego preguntan precios o tallas, responde directo sobre ese producto. PROHIBIDO preguntar "¿De qué producto buscas?".
+7. HORARIO: **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
+8. NO REPITAS SALUDOS: Si ya están platicando, no vuelvas a saludar.
+9. APARTADOS Y FÓRMULA EXACTA DE CONFIRMACIÓN:
+   - Cualquier producto se aparta con **$50 o $100 pesos**.
+   - **Uniformes:** Plazo de **3 días**.
+   - **Mochilas y Ropa:** Plazo de **15 días**.
+   - CERO PREGUNTAS DE DATOS: No pidas nombre ni teléfono. Ejecuta `guardar_apartado_o_pedido(articulo_y_talla)` de inmediato.
+   - FÓRMULA OBLIGATORIA AL CONFIRMAR APARTADO: Di exactamente:
+     «¡Listo! Ya quedó apartado tu [producto] para [nombre_cliente]. Tienes [3 días / 15 días] para liquidar con $50 o $100.»
 """
 
 MODELOS_PREFERIDOS = [
@@ -226,18 +219,22 @@ def extraer_texto(respuesta) -> str:
                 return " ".join(partes).strip()
     except Exception:
         pass
-    return "¡Hola! Con gusto te atiendo en Novedades Rosymar. ¿En qué prenda, mochila o uniforme te puedo ayudar hoy?"
+    return "¡Hola! Con gusto te atiendo en Novedades Rosymar. ¿En qué te puedo ayudar hoy?"
 
 def procesar_mensaje_con_ia(numero_telefono: str, mensaje_usuario: str) -> str:
-    """Procesa el mensaje con IA de forma resiliente ante cualquier excepción."""
+    """Procesa el mensaje con IA de forma humana, ultra corta y resiliente."""
     CURRENT_SENDER_ID.set(str(numero_telefono))
+    perfil = obtener_perfil_messenger(numero_telefono)
+    nombre_perfil = perfil.get("nombre", "Cliente")
+    
+    contexto = f"[Cliente de Messenger: {nombre_perfil}]: {mensaje_usuario}"
     
     for idx, nombre_modelo in enumerate(MODELOS_PREFERIDOS):
         try:
             chat = obtener_chat(numero_telefono, modelo_idx=idx)
             if not chat:
                 continue
-            respuesta = chat.send_message(mensaje_usuario)
+            respuesta = chat.send_message(contexto)
             texto_final = extraer_texto(respuesta)
             if texto_final:
                 # Guardar el intercambio en memoria persistente
@@ -247,4 +244,4 @@ def procesar_mensaje_con_ia(numero_telefono: str, mensaje_usuario: str) -> str:
             print(f"Aviso modelo {nombre_modelo}: {e}. Probando respaldo...")
             SESIONES.pop(f"{numero_telefono}_{nombre_modelo}", None)
             
-    return "¡Hola! Con gusto te atiendo en **Novedades Rosymar**. ¿En qué uniforme escolar, mochila o prenda te puedo apoyar?"
+    return "¡Hola! Con gusto te atiendo en **Novedades Rosymar**. ¿Qué prenda o uniforme buscas?"
