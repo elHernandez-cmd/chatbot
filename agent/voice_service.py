@@ -41,6 +41,19 @@ def limpiar_texto_para_voz(texto: str) -> str:
     limpio = re.sub(r"\s+", " ", limpio).strip()
     return limpio
 
+def eliminar_audio_de_historial(history_item_id: str, api_key: str):
+    """Elimina el registro de audio del historial de ElevenLabs para mantener la cuenta limpia y privada."""
+    if not history_item_id or not api_key:
+        return
+    try:
+        url = f"https://api.elevenlabs.io/v1/history/{history_item_id}"
+        headers = {"xi-api-key": api_key}
+        res = requests.delete(url, headers=headers, timeout=5)
+        if res.status_code == 200:
+            print(f"[ELEVENLABS HISTORIAL]: Audio {history_item_id} eliminado del historial con éxito.")
+    except Exception:
+        pass
+
 def generar_audio_elevenlabs(texto: str, voice_id: str = None) -> bytes | None:
     """
     Genera audio MP3 ultra realista usando la API de ElevenLabs.
@@ -73,6 +86,10 @@ def generar_audio_elevenlabs(texto: str, voice_id: str = None) -> bytes | None:
         response = requests.post(url, json=payload, headers=headers, timeout=15)
         if response.status_code == 200 and response.content:
             print(f"[ELEVENLABS]: Audio generado con éxito ({len(response.content)} bytes).")
+            # Borrar automáticamente del historial de ElevenLabs
+            hid = response.headers.get("history-item-id")
+            if hid:
+                eliminar_audio_de_historial(hid, api_key)
             return response.content
         elif response.status_code in [401, 402, 403] and vid != VOZ_RESPALDO_GRATUITA:
             print(f"[ELEVENLABS {response.status_code}]: La voz {vid} requiere plan de pago. Usando voz de respaldo gratuita ({VOZ_RESPALDO_GRATUITA})...")
