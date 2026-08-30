@@ -355,9 +355,9 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
         
     return False, ""
 
-# --- 5. MEMORIA DE APARTADOS Y RECORDATORIOS DE 15 DÍAS ---
-def crear_apartado_memoria(nombre_cliente: str, telefono: str, articulo_y_talla: str, sender_id: str = None) -> dict:
-    """Registra un nuevo apartado en la memoria persistente."""
+# --- 5. MEMORIA DE APARTADOS Y RECORDATORIOS (3 DÍAS UNIFORMES / 15 DÍAS OTROS) ---
+def crear_apartado_memoria(nombre_cliente: str, telefono: str, articulo_y_talla: str, sender_id: str = None, dias_plazo: int = None) -> dict:
+    """Registra un nuevo apartado asociando el chat del cliente y calculando 3 días para uniformes o 15 días para otros."""
     if not sender_id:
         sender_id = CURRENT_SENDER_ID.get()
     ahora = datetime.now(TIMEZONE_MEXICO)
@@ -365,6 +365,14 @@ def crear_apartado_memoria(nombre_cliente: str, telefono: str, articulo_y_talla:
     if not isinstance(apartados, list):
         apartados = []
         
+    art_lower = articulo_y_talla.lower()
+    if dias_plazo is None:
+        # Uniformes escolares tienen 3 días de plazo máximo; mochilas y ropa tienen 15 días
+        if any(w in art_lower for w in ["uniforme", "cecyte", "primaria", "secundaria", "playera", "falda", "pantalon", "pants"]):
+            dias_plazo = 3
+        else:
+            dias_plazo = 15
+            
     nuevo_id = f"APT-{len(apartados) + 1}"
     nuevo_apartado = {
         "id": nuevo_id,
@@ -373,18 +381,63 @@ def crear_apartado_memoria(nombre_cliente: str, telefono: str, articulo_y_talla:
         "telefono": telefono.strip(),
         "articulo_y_talla": articulo_y_talla.strip(),
         "fecha_creacion": ahora.strftime("%Y-%m-%d %H:%M:%S"),
-        "dias_plazo": 15,
+        "dias_plazo": dias_plazo,
         "estado": "pendiente",
         "recordatorio_enviado": False,
         "fecha_recordatorio": None
     }
     apartados.append(nuevo_apartado)
     _guardar_json(APARTADOS_FILE, apartados)
-    print(f"📦 [APARTADO REGISTRADO]: {nuevo_id} para {nombre_cliente} ({articulo_y_talla})")
+    print(f"📦 [APARTADO REGISTRADO]: {nuevo_id} para {nombre_cliente} ({articulo_y_talla}) - Plazo: {dias_plazo} días.")
     return nuevo_apartado
 
+def consultar_apartados_cliente(sender_id: str = None) -> list:
+    """Consulta los apartados vigentes asociados a este chat de cliente."""
+    if not sender_id:
+        sender_id = CURRENT_SENDER_ID.get()
+    if not sender_id:
+        return []
+        
+    apartados = _leer_json(APARTADOS_FILE, [])
+    if not isinstance(apartados, list):
+        return []
+        
+    ahora = datetime.now(TIMEZONE_MEXICO)
+    mis_apartados = []
+    
+    for a in apartados:
+        if str(a.get("sender_id")) == str(sender_id) and a.get("estado") == "pendiente":
+            dias_plazo = a.get("dias_plazo", 15)
+            fecha_str = a.get("fecha_creacion", "")
+            dias_transcurridos = 0
+            fecha_bonita = fecha_str
+            hora_bonita = ""
+            
+            if fecha_str:
+                try:
+                    dt = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=TIMEZONE_MEXICO)
+                    dias_transcurridos = (ahora - dt).days
+                    dias_restantes = max(0, dias_plazo - dias_transcurridos)
+                    fecha_bonita = dt.strftime("%d/%m/%Y")
+                    hora_bonita = dt.strftime("%I:%M %p")
+                except Exception:
+                    dias_restantes = dias_plazo
+            else:
+                dias_restantes = dias_plazo
+
+            mis_apartados.append({
+                "articulo": a.get("articulo_y_talla"),
+                "nombre": a.get("nombre_cliente"),
+                "fecha": fecha_bonita,
+                "hora": hora_bonita,
+                "plazo_total": dias_plazo,
+                "dias_restantes": dias_restantes
+            })
+            
+    return mis_apartados
+
 def procesar_y_enviar_recordatorios(enviar_mensaje_callback) -> int:
-    """Revisa los apartados con 15 días cumplidos y envía recordatorio cordial por Messenger."""
+    """Revisa los apartados con plazo cumplido (3 días uniformes / 15 días otros) y envía recordatorio cordial."""
     apartados = _leer_json(APARTADOS_FILE, [])
     if not isinstance(apartados, list) or not apartados:
         return 0
@@ -401,7 +454,8 @@ def procesar_y_enviar_recordatorios(enviar_mensaje_callback) -> int:
                 continue
             try:
                 dt_c = datetime.strptime(fecha_str, "%Y-%m-%d %H:%M:%S").replace(tzinfo=TIMEZONE_MEXICO)
-                if (ahora - dt_c).days >= 15:
+                dias_plazo = apt.get("dias_plazo", 15)
+                if (ahora - dt_c).days >= dias_plazo:
                     s_id = apt.get("sender_id")
                     nombre = apt.get("nombre_cliente", "Estimado cliente")
                     articulo = apt.get("articulo_y_talla", "su artículo")
@@ -409,11 +463,11 @@ def procesar_y_enviar_recordatorios(enviar_mensaje_callback) -> int:
                     if s_id:
                         mensaje = (
                             f"¡Hola **{nombre}**! Te saludamos con mucho gusto de **Novedades Rosymar**.\n\n"
-                            f"Te recordamos amablemente que hoy se cumplen los **15 días de plazo** de tu apartado de **{articulo}**.\n\n"
-                            f"Quedamos a tus órdenes en la tienda física en Villa Ignacio Allende para que pases a liquidarlo y recogerlo. ¡Que tengas un excelente día! ✨"
+                            f"Te recordamos amablemente que hoy se cumplen los **{dias_plazo} días de plazo** de tu apartado de **{articulo}**.\n\n"
+                            f"Quedamos a tus órdenes en la tienda física en Ignacio Allende, Centla para que pases a liquidarlo y recogerlo. ¡Que tengas un excelente día! ✨"
                         )
                         try:
-                            print(f"🔔 [ENVIANDO RECORDATORIO 15 DÍAS a {s_id} ({nombre})]: {articulo}")
+                            print(f"🔔 [ENVIANDO RECORDATORIO {dias_plazo} DÍAS a {s_id} ({nombre})]: {articulo}")
                             enviar_mensaje_callback(s_id, mensaje)
                             enviados += 1
                         except Exception as e:

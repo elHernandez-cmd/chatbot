@@ -6,6 +6,7 @@ from agent.services import (
     obtener_existencias_actuales,
     CURRENT_SENDER_ID,
     crear_apartado_memoria,
+    consultar_apartados_cliente,
     guardar_fila_sheets,
     obtener_historial_usuario,
     guardar_intercambio_historial
@@ -17,9 +18,8 @@ load_dotenv()
 CONOCIMIENTO_GENERAL_ROSYMAR = """
 SOBRE EL NEGOCIO Y UBICACIÓN:
 - Nombre: Novedades Rosymar
-- Tipo de tienda: Establecimiento local de ropa para toda la familia, mochilas y uniformes escolares.
-- Ubicación: Villa Ignacio Allende, Centla, Tabasco, México.
-- Referencias: Calle José María Pino Suárez, rumbo al paso (embarcadero fluvial), a un costado de la tienda Diconsa (a dos cuadras del parque central).
+- Tipo de tienda: Establecimiento de ropa para toda la familia, mochilas y uniformes escolares.
+- Ubicación exacta: Ignacio Allende, Centla (Villa Ignacio Allende, Centla, Tabasco). Sobre la calle José María Pino Suárez, rumbo al paso fluvial, a un costado de Diconsa.
 - Facebook: https://www.facebook.com/profile.php?id=61578993366170
 
 HORARIOS Y ATENCIÓN:
@@ -28,15 +28,17 @@ HORARIOS Y ATENCIÓN:
 PRODUCTOS Y MARCAS:
 1. Uniformes Escolares:
    - CECyTE Tabasco (playeras polo con logo, pantalones de vestir, faldas y pants deportivos).
-   - Escuelas Primarias y Secundarias locales (camisas blancas, faldas, pantalones, calcetas).
+   - Escuelas Primarias y Secundarias de la zona (camisas blancas, faldas, pantalones, calcetas).
 2. Mochilas y Accesorios:
-   - Mochilas escolares de alta resistencia (Golden Star y más), mochilas con ruedas, juveniles, lapiceras y loncheras.
+   - Mochilas escolares resistentes (marca Golden Star y más), mochilas con ruedas, juveniles, lapiceras y loncheras.
 3. Ropa para toda la familia:
    - Damas, caballeros, niños, niñas y vestidos especiales.
 
 POLÍTICAS DE PAGO Y APARTADOS:
 - Pagos: Efectivo y Transferencias bancarias.
-- Sistema de Apartado: Anticipo de $50 o $100 pesos con plazo máximo de 15 días para liquidar.
+- Sistema de Apartado (Anticipo de $50 o $100 pesos):
+  * Uniformes Escolares: Plazo máximo de **3 días** para liquidar.
+  * Mochilas y Ropa general: Plazo máximo de **15 días** para liquidar.
 - Cambios de talla: Se aceptan cambios si la prenda está limpia, con etiquetas y en perfecto estado.
 """
 
@@ -48,24 +50,26 @@ def consultar_informacion_tienda(tema: str) -> dict:
         tema: 'ubicacion', 'uniformes', 'mochilas', 'ropa', 'facebook'.
     """
     datos = {
-        "ubicacion": "Estamos en Villa Ignacio Allende, Centla, Tabasco. Sobre la calle José María Pino Suárez, rumbo al paso, a un costado de Diconsa.",
+        "ubicacion": "Estamos en Ignacio Allende, Centla. Sobre la calle José María Pino Suárez, rumbo al paso, a un costado de Diconsa.",
         "uniformes": "Manejamos uniformes para CECyTE Tabasco (playeras, pantalones, faldas) y también para primarias y secundarias de la zona.",
         "mochilas": "Gran variedad de mochilas escolares resistentes (marca Golden Star y más) para todos los grados.",
         "ropa": "Ropa de calidad para toda la familia: damas, caballeros, niños y vestidos para ocasiones especiales.",
         "facebook": "Visita nuestro Facebook: https://www.facebook.com/profile.php?id=61578993366170"
     }
-    return {"informacion": datos.get(str(tema).lower(), "Ofrecemos uniformes escolares CECyTE, mochilas Golden Star y ropa para toda la familia.")}
+    return {"informacion": datos.get(str(tema).lower(), "Estamos en Ignacio Allende, Centla. Ofrecemos uniformes escolares CECyTE, mochilas Golden Star y ropa para toda la familia.")}
 
 def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_talla: str) -> dict:
     """
-    Registra un apartado de ropa, uniforme o mochila en la memoria del bot y en Google Sheets con plazo de 15 días.
+    Registra un apartado en la memoria del bot y en Google Sheets.
+    Calcula automáticamente 3 días de plazo para uniformes escolares y 15 días para otros artículos.
     Args:
-        nombre_cliente: Nombre de quien aparta.
-        telefono: Teléfono de WhatsApp.
+        nombre_cliente: Nombre de la persona a cuyo nombre queda el apartado.
+        telefono: Teléfono de contacto.
         articulo_y_talla: Artículo y talla exacta (ej: 'Playera CECyTE Talla M').
     """
     try:
-        crear_apartado_memoria(nombre_cliente, telefono, articulo_y_talla)
+        nuevo = crear_apartado_memoria(nombre_cliente, telefono, articulo_y_talla)
+        dias = nuevo.get("dias_plazo", 15)
         guardar_fila_sheets(
             pestana="Apartados_y_Pedidos",
             datos=[
@@ -73,23 +77,47 @@ def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_tal
                 nombre_cliente,
                 telefono,
                 articulo_y_talla,
-                "Pendiente de Entrega / Pago (15 días de plazo)"
+                f"Pendiente de Entrega / Pago ({dias} días de plazo)"
             ]
         )
-        return {"status": "success", "mensaje": f"Apartado guardado para {nombre_cliente}: {articulo_y_talla} (Plazo 15 días)."}
+        return {
+            "status": "success",
+            "mensaje": f"Apartado registrado con éxito a nombre de {nombre_cliente}: {articulo_y_talla}. Plazo: {dias} días para liquidar con anticipo de $50 o $100 pesos."
+        }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
 
+def consultar_mi_apartado() -> dict:
+    """
+    Consulta los apartados vigentes registrados en este chat, indicando fecha, hora, artículo y días restantes.
+    """
+    try:
+        apartados = consultar_apartados_cliente()
+        if not apartados:
+            return {"apartados": "No tienes ningún apartado activo registrado en este chat actualmente."}
+        
+        info = []
+        for a in apartados:
+            info.append(
+                f"- Artículo: {a['articulo']} (a nombre de {a['nombre']}). "
+                f"Apartado el {a['fecha']} a las {a['hora']}. "
+                f"Plazo: {a['plazo_total']} días (te quedan {a['dias_restantes']} días para liquidar)."
+            )
+        return {"apartados": "\n".join(info)}
+    except Exception as e:
+        return {"error": str(e)}
+
 HERRAMIENTAS_AGENTE = [
     consultar_informacion_tienda,
-    guardar_apartado_o_pedido
+    guardar_apartado_o_pedido,
+    consultar_mi_apartado
 ]
 
 # --- 3. SYSTEM PROMPT Y MODELOS DE GEMINI ---
 def obtener_system_prompt() -> str:
     existencias = obtener_existencias_actuales()
     return f"""
-Eres la encargada de atención en la tienda física "Novedades Rosymar" en Villa Ignacio Allende, Centla, Tabasco.
+Eres la encargada de atención en la tienda física "Novedades Rosymar" en Ignacio Allende, Centla.
 Atiendes el chat de Messenger tal como responderías desde tu celular a tus clientes, con máxima disposición de servicio y amabilidad.
 
 BASE DE CONOCIMIENTOS DEL NEGOCIO:
@@ -101,17 +129,20 @@ EXISTENCIAS E INVENTARIO ACTUALIZADO EN TIEMPO REAL:
 REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 1. TRATO SERVICIAL Y AMABLE: Mantén siempre un tono muy atento, educado y servicial.
 2. RESPUESTAS ULTRA CORTAS Y CONCRETAS: Ve directo al grano en 1 sola oración corta (máximo 2 oraciones muy breves). Sin introducciones largas ni rodeos.
-3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **ubicación**).
-4. RECUERDO Y MEMORIA ESTRICTA DEL PRODUCTO EN LA CONVERSACIÓN:
+3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 3 días** o **15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **Ignacio Allende, Centla**).
+4. UBICACIÓN DE LA TIENDA: En ubicación siempre indica: **Ignacio Allende, Centla** (rumbo al paso fluvial, a un costado de Diconsa).
+5. NUNCA INVENTES NOMBRES: Está estrictamente prohibido inventar nombres de personas o seguirle el juego a nombres que mencione el cliente. Si preguntan quién atiende o piden hablar con alguien, di únicamente que hablarás con **la encargada** o que te comunicas de parte de **la encargada**.
+6. RECUERDO Y MEMORIA ESTRICTA DEL PRODUCTO EN LA CONVERSACIÓN:
    - Si el cliente mencionó un producto (ej: "uniforme CECyTE para dama", "mochila Golden Star", "pants", etc.) y luego pregunta "¿Qué precios?", "¿Cuánto cuesta?", "¿Qué tallas tienes?", etc., ASUME INMEDIATAMENTE que se refiere al producto del que acaban de hablar.
    - ESTÁ ESTRICTAMENTE PROHIBIDO preguntar "¿De qué artículo te interesa el precio?" si ya se mencionó un producto en los mensajes previos. Responde directo con los datos o precios de ese producto específico.
-   - Solo pregunta qué producto busca si en TODA la plática el cliente jamás ha nombrado ninguno.
-5. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
-6. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
-7. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
-8. APARTADOS Y VISITAS A TIENDA:
-   - Apartados con anticipo de **$50 o $100 pesos** y plazo de **15 días** para liquidar (usa la herramienta `guardar_apartado_o_pedido`).
-   - Para medirse prendas o comprar directamente: invítalos a pasar a la tienda en Villa Ignacio Allende en nuestro horario habitual sin necesidad de cita.
+7. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
+8. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
+9. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
+10. POLÍTICAS DE APARTADOS Y PRIVACIDAD:
+   - **Uniformes Escolares:** Plazo máximo de **3 días** para liquidar con anticipo de **$50 o $100 pesos**.
+   - **Mochilas y Ropa general:** Plazo máximo de **15 días** para liquidar con anticipo de **$50 o $100 pesos**.
+   - Al registrar un apartado usa `guardar_apartado_o_pedido`. NUNCA le digas al cliente "se guardó con tu ID" ni menciones códigos; confírmale que quedó registrado **a su nombre**.
+   - Si el cliente pregunta por su apartado o pedido, usa la herramienta `consultar_mi_apartado` para recordarle la hora, el día y el artículo que tiene apartado.
    - Si piden fiado o descuento: diles amablemente que lo consultarás con la encargada.
 """
 
