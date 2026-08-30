@@ -19,10 +19,11 @@ ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "wBnAJRbu3cj93gnAm02O").s
 VOZ_RESPALDO_GRATUITA = "FGY2WhTYpPnrIDTdsKH5"  # Laura (Predeterminada gratuita)
 
 MODELOS_AUDIO = [
-    "gemini-flash-latest",
-    "gemini-2.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-flash-lite-latest"
+    "gemini-flash-latest"
 ]
 
 def limpiar_texto_para_voz(texto: str) -> str:

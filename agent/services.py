@@ -36,6 +36,28 @@ BLOCKED_FILE = _obtener_ruta_persistencia("bloqueados_rosymar.json")
 STRIKES_FILE = _obtener_ruta_persistencia("strikes_rosymar.json")
 PENDIENTES_FILE = _obtener_ruta_persistencia("pendientes_noche_rosymar.json")
 APARTADOS_FILE = _obtener_ruta_persistencia("apartados_rosymar.json")
+HISTORIAL_CONV_FILE = _obtener_ruta_persistencia("historial_conversaciones.json")
+
+def obtener_historial_usuario(sender_id: str) -> list:
+    """Obtiene los últimos turnos de conversación para mantener la memoria en Vercel Serverless."""
+    if not sender_id:
+        return []
+    datos = _leer_json(HISTORIAL_CONV_FILE, {})
+    return datos.get(str(sender_id), [])
+
+def guardar_intercambio_historial(sender_id: str, mensaje_usuario: str, respuesta_bot: str):
+    """Guarda el historial de la conversación de forma persistente."""
+    if not sender_id:
+        return
+    datos = _leer_json(HISTORIAL_CONV_FILE, {})
+    hist = datos.get(str(sender_id), [])
+    hist.append({"role": "user", "parts": [mensaje_usuario]})
+    hist.append({"role": "model", "parts": [respuesta_bot]})
+    # Mantener los últimos 14 mensajes para contexto amplio sin saturar tokens
+    if len(hist) > 14:
+        hist = hist[-14:]
+    datos[str(sender_id)] = hist
+    _guardar_json(HISTORIAL_CONV_FILE, datos)
 
 # Helpers seguros de JSON
 def _leer_json(ruta: str, por_defecto=None):

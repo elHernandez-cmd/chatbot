@@ -7,7 +7,9 @@ from agent.services import (
     CURRENT_SENDER_ID,
     crear_apartado_memoria,
     guardar_fila_sheets,
-    insertar_evento_calendar
+    insertar_evento_calendar,
+    obtener_historial_usuario,
+    guardar_intercambio_historial
 )
 
 load_dotenv()
@@ -129,7 +131,10 @@ REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 1. TRATO SERVICIAL Y AMABLE: Mantén siempre un tono muy atento, educado y servicial.
 2. RESPUESTAS ULTRA CORTAS Y CONCRETAS: Ve directo al grano en 1 sola oración corta (máximo 2 oraciones muy breves). Sin introducciones largas ni rodeos.
 3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **ubicación**).
-4. CONSULTA DE EXISTENCIAS: Revisa las EXISTENCIAS EN TIEMPO REAL para responder con exactitud si un artículo está disponible o agotado.
+4. RECUERDO Y MEMORIA ESTRICTA DEL PRODUCTO EN LA CONVERSACIÓN:
+   - Si el cliente mencionó un producto (ej: "uniforme CECyTE para dama", "mochila Golden Star", "pants", etc.) y luego pregunta "¿Qué precios?", "¿Cuánto cuesta?", "¿Qué tallas tienes?", etc., ASUME INMEDIATAMENTE que se refiere al producto del que acaban de hablar.
+   - ESTÁ ESTRICTAMENTE PROHIBIDO preguntar "¿De qué artículo te interesa el precio?" si ya se mencionó un producto en los mensajes previos. Responde directo con los datos o precios de ese producto específico.
+   - Solo pregunta qué producto busca si en TODA la plática el cliente jamás ha nombrado ninguno.
 5. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
 6. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
 7. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
@@ -141,11 +146,11 @@ REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 """
 
 MODELOS_PREFERIDOS = [
-    "gemini-flash-lite-latest",
     "gemini-3.5-flash-lite",
-    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+    "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-3.7-flash"
+    "gemini-flash-latest"
 ]
 
 SESIONES = {}
@@ -170,7 +175,18 @@ def obtener_chat(numero_telefono: str, modelo_idx: int = 0):
                 tools=HERRAMIENTAS_AGENTE,
                 system_instruction=obtener_system_prompt()
             )
-            SESIONES[clave_sesion] = modelo.start_chat(enable_automatic_function_calling=True)
+            # Reconstruir el historial persistente para no perder la memoria entre peticiones
+            historial_previo = obtener_historial_usuario(numero_telefono)
+            formato_history = []
+            for h in historial_previo:
+                formato_history.append({
+                    "role": h.get("role", "user"),
+                    "parts": h.get("parts", [""])
+                })
+            SESIONES[clave_sesion] = modelo.start_chat(
+                history=formato_history,
+                enable_automatic_function_calling=True
+            )
         except Exception as e:
             print(f"Error iniciando modelo {model_name}: {e}")
             return None
@@ -197,16 +213,17 @@ def extraer_texto(respuesta) -> str:
 def procesar_mensaje_con_ia(numero_telefono: str, mensaje_usuario: str) -> str:
     """Procesa el mensaje con IA de forma resiliente ante cualquier excepción."""
     CURRENT_SENDER_ID.set(str(numero_telefono))
-    contexto = f"[Cliente Messenger ({numero_telefono})]: {mensaje_usuario}"
     
     for idx, nombre_modelo in enumerate(MODELOS_PREFERIDOS):
         try:
             chat = obtener_chat(numero_telefono, modelo_idx=idx)
             if not chat:
                 continue
-            respuesta = chat.send_message(contexto)
+            respuesta = chat.send_message(mensaje_usuario)
             texto_final = extraer_texto(respuesta)
             if texto_final:
+                # Guardar el intercambio en memoria persistente
+                guardar_intercambio_historial(numero_telefono, mensaje_usuario, texto_final)
                 return texto_final
         except Exception as e:
             print(f"Aviso modelo {nombre_modelo}: {e}. Probando respaldo...")
