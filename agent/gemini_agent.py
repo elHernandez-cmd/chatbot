@@ -20,7 +20,8 @@ CONOCIMIENTO_GENERAL_ROSYMAR = """
 SOBRE EL NEGOCIO Y UBICACIÓN:
 - Nombre: Novedades Rosymar
 - Tipo de tienda: Establecimiento de ropa para toda la familia, mochilas y uniformes escolares.
-- Ubicación exacta: Ignacio Allende, Centla (Villa Ignacio Allende, Centla, Tabasco). Sobre la calle José María Pino Suárez, rumbo al paso fluvial, a un costado de Diconsa.
+- Ubicación: Villa Ignacio Allende
+- Referencias: Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa
 - Facebook: https://www.facebook.com/profile.php?id=61578993366170
 
 HORARIOS Y ATENCIÓN:
@@ -51,13 +52,13 @@ def consultar_informacion_tienda(tema: str) -> dict:
         tema: 'ubicacion', 'uniformes', 'mochilas', 'ropa', 'facebook'.
     """
     datos = {
-        "ubicacion": "Estamos en Ignacio Allende, Centla. Sobre la calle José María Pino Suárez, rumbo al paso, a un costado de Diconsa.",
+        "ubicacion": "Estamos en **Villa Ignacio Allende**.\n**Referencias:** Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa.",
         "uniformes": "Manejamos uniformes para CECyTE Tabasco (playeras, pantalones, faldas) y también para primarias y secundarias de la zona.",
         "mochilas": "Gran variedad de mochilas escolares resistentes (marca Golden Star y más) para todos los grados.",
         "ropa": "Ropa de calidad para toda la familia: damas, caballeros, niños y vestidos para ocasiones especiales.",
         "facebook": "Visita nuestro Facebook: https://www.facebook.com/profile.php?id=61578993366170"
     }
-    return {"informacion": datos.get(str(tema).lower(), "Estamos en Ignacio Allende, Centla. Ofrecemos uniformes escolares CECyTE, mochilas Golden Star y ropa para toda la familia.")}
+    return {"informacion": datos.get(str(tema).lower(), "Estamos en **Villa Ignacio Allende**. **Referencias:** Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa.")}
 
 def guardar_apartado_o_pedido(articulo_y_talla: str, nombre_cliente: str = "", telefono: str = "") -> dict:
     """
@@ -128,7 +129,7 @@ HERRAMIENTAS_AGENTE = [
 def obtener_system_prompt() -> str:
     existencias = obtener_existencias_actuales()
     return f"""
-Eres la encargada de atención en la tienda física "Novedades Rosymar" en Ignacio Allende, Centla.
+Eres la encargada de atención en la tienda física "Novedades Rosymar" en Villa Ignacio Allende.
 Atiendes el chat de Messenger tal como responderías desde tu celular a tus clientes, con máxima disposición de servicio y amabilidad.
 
 BASE DE CONOCIMIENTOS DEL NEGOCIO:
@@ -140,8 +141,11 @@ EXISTENCIAS E INVENTARIO ACTUALIZADO EN TIEMPO REAL:
 REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 1. TRATO SERVICIAL Y AMABLE: Mantén siempre un tono muy atento, educado y servicial.
 2. RESPUESTAS ULTRA CORTAS Y CONCRETAS: Ve directo al grano en 1 sola oración corta (máximo 2 oraciones muy breves). Sin introducciones largas ni rodeos.
-3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 3 días** o **15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **Ignacio Allende, Centla**).
-4. UBICACIÓN DE LA TIENDA: En ubicación siempre indica: **Ignacio Allende, Centla** (rumbo al paso fluvial, a un costado de Diconsa).
+3. USO DE NEGRITAS EN DATOS CLAVE: Resalta siempre los datos más importantes en **negritas** (ej: **horarios**, **plazo de 3 días** o **15 días**, **$50 o $100**, **CECyTE**, **Golden Star**, **Villa Ignacio Allende**).
+4. UBICACIÓN Y REFERENCIAS DE LA TIENDA:
+   - **Ubicación:** **Villa Ignacio Allende**
+   - **Referencias:** **Calle José María Pino Suárez, rumbo al paso a un costado de la Tienda Diconsa**
+   - Cuando pregunten por ubicación o cómo llegar, responde exactamente con estos dos datos claros.
 5. NUNCA INVENTES NOMBRES: Está estrictamente prohibido inventar nombres de personas o seguirle el juego a nombres que mencione el cliente. Si preguntan quién atiende o piden hablar con alguien, di únicamente que hablarás con **la encargada** o que te comunicas de parte de **la encargada**.
 6. RECUERDO Y MEMORIA ESTRICTA DEL PRODUCTO EN LA CONVERSACIÓN:
    - Si el cliente mencionó un producto (ej: "uniforme CECyTE para dama", "mochila Golden Star", "pants", etc.) y luego pregunta "¿Qué precios?", "¿Cuánto cuesta?", "¿Qué tallas tienes?", etc., ASUME INMEDIATAMENTE que se refiere al producto del que acaban de hablar.
