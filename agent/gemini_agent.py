@@ -9,7 +9,8 @@ from agent.services import (
     consultar_apartados_cliente,
     guardar_fila_sheets,
     obtener_historial_usuario,
-    guardar_intercambio_historial
+    guardar_intercambio_historial,
+    obtener_perfil_messenger
 )
 
 load_dotenv()
@@ -58,23 +59,33 @@ def consultar_informacion_tienda(tema: str) -> dict:
     }
     return {"informacion": datos.get(str(tema).lower(), "Estamos en Ignacio Allende, Centla. Ofrecemos uniformes escolares CECyTE, mochilas Golden Star y ropa para toda la familia.")}
 
-def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_talla: str) -> dict:
+def guardar_apartado_o_pedido(articulo_y_talla: str, nombre_cliente: str = "", telefono: str = "") -> dict:
     """
-    Registra un apartado en la memoria del bot y en Google Sheets.
-    Calcula automáticamente 3 días de plazo para uniformes escolares y 15 días para otros artículos.
+    Registra un apartado en automático en la memoria del bot y en Google Sheets sin pedirle datos al cliente.
+    El sistema obtiene su nombre automáticamente de su perfil de Messenger.
     Args:
-        nombre_cliente: Nombre de la persona a cuyo nombre queda el apartado.
-        telefono: Teléfono de contacto.
-        articulo_y_talla: Artículo y talla exacta (ej: 'Playera CECyTE Talla M').
+        articulo_y_talla: Artículo y talla exacta (ej: 'Playera CECyTE Talla M', 'Mochila Golden Star con ruedas').
+        nombre_cliente: (Opcional) Nombre si el cliente lo mencionó, sino se obtiene en automático de Messenger.
+        telefono: (Opcional) Teléfono si el cliente lo dio en el chat.
     """
     try:
-        nuevo = crear_apartado_memoria(nombre_cliente, telefono, articulo_y_talla)
+        s_id = CURRENT_SENDER_ID.get()
+        if not nombre_cliente:
+            perfil = obtener_perfil_messenger(s_id)
+            nombre_cliente = perfil.get("nombre", "Cliente")
+        if not telefono:
+            perfil = obtener_perfil_messenger(s_id)
+            telefono = perfil.get("telefono", "Chat Messenger")
+            
+        nuevo = crear_apartado_memoria(nombre_cliente, telefono, articulo_y_talla, sender_id=s_id)
         dias = nuevo.get("dias_plazo", 15)
+        nombre_real = nuevo.get("nombre_cliente", nombre_cliente)
+        
         guardar_fila_sheets(
             pestana="Apartados_y_Pedidos",
             datos=[
                 datetime.now().strftime("%Y-%m-%d %H:%M"),
-                nombre_cliente,
+                nombre_real,
                 telefono,
                 articulo_y_talla,
                 f"Pendiente de Entrega / Pago ({dias} días de plazo)"
@@ -82,7 +93,7 @@ def guardar_apartado_o_pedido(nombre_cliente: str, telefono: str, articulo_y_tal
         )
         return {
             "status": "success",
-            "mensaje": f"Apartado registrado con éxito a nombre de {nombre_cliente}: {articulo_y_talla}. Plazo: {dias} días para liquidar con anticipo de $50 o $100 pesos."
+            "mensaje": f"Apartado registrado con éxito a nombre de {nombre_real}: {articulo_y_talla}. Plazo: {dias} días para liquidar con anticipo de $50 o $100 pesos."
         }
     except Exception as e:
         return {"status": "error", "mensaje": str(e)}
@@ -138,10 +149,11 @@ REGLAS ESTRICTAS DE RESPUESTA (ULTRA CONCRETA, SERVICIAL Y CON NEGRITAS):
 7. NO REPITAS SALUDOS NI PREGUNTAS: Si el cliente hace una pregunta directa o continúa la conversación, responde directo a su duda sin poner "Hola" ni repetir saludos.
 8. HORARIO EXACTO: Atendemos de **Lunes a Sábado de 8:00 AM a 7:00 PM** (**domingos cerrado**).
 9. CONTINUIDAD EN MENSAJES Y AUDIOS SEGUIDOS: Si el cliente manda varios audios o mensajes seguidos, mantén el hilo de la plática, responde a lo nuevo y jamás repitas preguntas que ya se contestaron.
-10. POLÍTICAS DE APARTADOS Y PRIVACIDAD:
+10. POLÍTICAS DE APARTADOS Y AUTOMATIZACIÓN TOTAL:
    - **Uniformes Escolares:** Plazo máximo de **3 días** para liquidar con anticipo de **$50 o $100 pesos**.
    - **Mochilas y Ropa general:** Plazo máximo de **15 días** para liquidar con anticipo de **$50 o $100 pesos**.
-   - Al registrar un apartado usa `guardar_apartado_o_pedido`. NUNCA le digas al cliente "se guardó con tu ID" ni menciones códigos; confírmale que quedó registrado **a su nombre**.
+   - NUNCA PIDAS NOMBRE NI NÚMERO DE TELÉFONO: Si el cliente dice que quiere apartar una prenda o producto, NO le pidas sus datos; ejecuta directamente `guardar_apartado_o_pedido(articulo_y_talla)`. El sistema obtiene su nombre automáticamente de su perfil de Messenger.
+   - Confírmale de inmediato que su apartado quedó registrado **a su nombre** con el anticipo de **$50 o $100 pesos** y su plazo.
    - Si el cliente pregunta por su apartado o pedido, usa la herramienta `consultar_mi_apartado` para recordarle la hora, el día y el artículo que tiene apartado.
    - Si piden fiado o descuento: diles amablemente que lo consultarás con la encargada.
 """

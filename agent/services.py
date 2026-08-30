@@ -356,10 +356,48 @@ def procesar_comando_admin(sender_id: str, mensaje: str):
     return False, ""
 
 # --- 5. MEMORIA DE APARTADOS Y RECORDATORIOS (3 DÍAS UNIFORMES / 15 DÍAS OTROS) ---
-def crear_apartado_memoria(nombre_cliente: str, telefono: str, articulo_y_talla: str, sender_id: str = None, dias_plazo: int = None) -> dict:
-    """Registra un nuevo apartado asociando el chat del cliente y calculando 3 días para uniformes o 15 días para otros."""
+CACHE_PERFILES = {}
+
+def obtener_perfil_messenger(sender_id: str) -> dict:
+    """Obtiene el nombre real del cliente desde la Graph API de Facebook Messenger."""
+    import requests
+    if not sender_id:
+        return {"nombre": "Cliente", "telefono": "Chat Messenger"}
+    s_id = str(sender_id).strip()
+    if s_id in CACHE_PERFILES:
+        return CACHE_PERFILES[s_id]
+        
+    token = os.getenv("FB_PAGE_ACCESS_TOKEN", "").strip()
+    if not token:
+        return {"nombre": "Cliente", "telefono": f"Messenger ({s_id})"}
+        
+    try:
+        url = f"https://graph.facebook.com/v20.0/{s_id}?fields=first_name,last_name,name&access_token={token}"
+        r = requests.get(url, timeout=4)
+        if r.status_code == 200:
+            data = r.json()
+            nombre = data.get("name") or data.get("first_name") or "Cliente"
+            perfil = {"nombre": nombre.strip(), "telefono": f"Messenger ({s_id})"}
+            CACHE_PERFILES[s_id] = perfil
+            return perfil
+    except Exception as e:
+        print(f"Aviso consultando perfil de Messenger ({s_id}): {e}")
+        
+    return {"nombre": "Cliente", "telefono": f"Messenger ({s_id})"}
+
+def crear_apartado_memoria(nombre_cliente: str = "", telefono: str = "", articulo_y_talla: str = "", sender_id: str = None, dias_plazo: int = None) -> dict:
+    """Registra un nuevo apartado asociando el chat del cliente y obteniendo su nombre automáticamente."""
     if not sender_id:
         sender_id = CURRENT_SENDER_ID.get()
+        
+    if not nombre_cliente or nombre_cliente.strip().lower() in ["", "cliente", "estimado cliente", "estimado/a cliente"]:
+        perfil = obtener_perfil_messenger(sender_id)
+        nombre_cliente = perfil.get("nombre", "Cliente")
+        
+    if not telefono or telefono.strip().lower() in ["", "messenger", "chat messenger"]:
+        perfil = obtener_perfil_messenger(sender_id)
+        telefono = perfil.get("telefono", f"Messenger ({sender_id})")
+        
     ahora = datetime.now(TIMEZONE_MEXICO)
     apartados = _leer_json(APARTADOS_FILE, [])
     if not isinstance(apartados, list):
